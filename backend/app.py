@@ -2,6 +2,8 @@ from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
+
 
 # Создаем Flask-приложение
 app = Flask(__name__)
@@ -15,6 +17,10 @@ app.config['JWT_SECRET_KEY'] = 'super-secret-key'  # ПОТОМ ЗАМЕНИ Н�
 CORS(app)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+migrate = Migrate(app, db)
+
+
+from models import User, Lobby, Game, Team, Player, Result, DropZone, Announcement
 
 # Пример роут для проверки
 @app.route('/api/hello', methods=['GET'])
