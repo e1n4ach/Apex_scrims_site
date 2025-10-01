@@ -208,3 +208,36 @@ __marimo__/
 
 
 db.sqlite3
+
+# Node / Vite (frontend)
+frontend/node_modules/
+frontend/dist/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Env-файлы любого уровня (чтобы .env.local не попадал)
+.env.*
+frontend/.env*
+backend/.env*
+
+# SQLite и журналы (чтобы локальная БД не улетала)
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# IDE / ОС (на всякий случай)
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Flask-Migrate caches
+migrations/**/__pycache__/
+
+# Если храните загрузки/медиа во время работы сервера
+backend/uploads/
+backend/static/uploads/

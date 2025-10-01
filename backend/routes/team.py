@@ -5,7 +5,7 @@ from models import Lobby, Team, Player, User
 
 team_bp = Blueprint('team', __name__)
 
-# ✅ Регистрация команды
+# ✅ Register team
 @team_bp.route('/lobbies/<int:lobby_id>/teams/register', methods=['POST'])
 @jwt_required()
 def register_team(lobby_id):
@@ -21,25 +21,17 @@ def register_team(lobby_id):
         in: path
         type: integer
         required: true
-        description: ID of the lobby to register the team in
+        description: Lobby ID
       - in: body
         name: body
         required: true
         schema:
           type: object
           properties:
-            name:
-              type: string
-              example: "MyTeam"
-            player1:
-              type: string
-              example: "playerOne"
-            player2:
-              type: string
-              example: "playerTwo"
-            player3:
-              type: string
-              example: "playerThree"
+            name: {type: string, example: "MyTeam"}
+            player1: {type: string, example: "playerOne"}
+            player2: {type: string, example: "playerTwo"}
+            player3: {type: string, example: "playerThree"}
     responses:
       201:
         description: Team registered successfully
@@ -54,7 +46,7 @@ def register_team(lobby_id):
       409:
         description: Conflict (duplicate team or player already in team)
     """
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -62,7 +54,7 @@ def register_team(lobby_id):
     if not lobby:
         return jsonify({"error": "Lobby not found"}), 404
 
-    data = request.get_json()
+    data = request.get_json() or {}
     name = data.get('name')
     players = [data.get('player1'), data.get('player2'), data.get('player3')]
 
@@ -104,7 +96,7 @@ def register_team(lobby_id):
     }), 201
 
 
-# ✅ Получить список всех команд в лобби
+# ✅ List all teams in lobby
 @team_bp.route('/lobbies/<int:lobby_id>/teams', methods=['GET'])
 def get_teams_for_lobby(lobby_id):
     """
@@ -141,7 +133,7 @@ def get_teams_for_lobby(lobby_id):
     return jsonify(result), 200
 
 
-# ✅ Удалить команду (только админ)
+# ✅ Delete team (admin)
 @team_bp.route('/lobbies/<int:lobby_id>/teams/<int:team_id>', methods=['DELETE'])
 @jwt_required()
 def delete_team(lobby_id, team_id):
@@ -169,7 +161,7 @@ def delete_team(lobby_id, team_id):
       404:
         description: Lobby or Team not found
     """
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user or not user.is_admin:

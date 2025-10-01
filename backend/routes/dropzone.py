@@ -1,19 +1,23 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
-from models import Game, DropZone, Team, Player, User
+from models import Game, Map, DropzoneTemplate, DropzoneAssignment, Team, Player, User, Lobby
 
 dropzone_bp = Blueprint('dropzone', __name__)
 
-# ✅ Создать новую дроп-зону для игры
+
+# ========================
+# GAME DROPZONES (Assignments)
+# ========================
+
 @dropzone_bp.route('/games/<int:game_id>/dropzones', methods=['POST'])
 @jwt_required()
-def create_drop_zone(game_id):
+def create_dropzones_for_game(game_id):
     """
-    Create a new drop zone in a game
+    Create dropzones for a game based on its map templates (Admin only)
     ---
     tags:
-      - Drop Zones
+      - Drop Zones (Assignments)
     security:
       - BearerAuth: []
     parameters:
@@ -21,24 +25,11 @@ def create_drop_zone(game_id):
         in: path
         type: integer
         required: true
-        description: ID of the game
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          properties:
-            name:
-              type: string
-            x_percent:
-              type: number
-            y_percent:
-              type: number
     responses:
       201:
-        description: Drop zone created
+        description: Dropzones created for game
       400:
-        description: Bad request
+        description: No map on game / no templates for map
       403:
         description: Admin access required
       404:
@@ -52,78 +43,74 @@ def create_drop_zone(game_id):
     if not game:
         return jsonify({"error": "Game not found"}), 404
 
-    data = request.get_json()
-    name = data.get('name')
-    x_percent = data.get('x_percent')
-    y_percent = data.get('y_percent')
+    if not game.map_id:
+        return jsonify({"error": "Game has no map assigned"}), 400
 
-    if not name or x_percent is None or y_percent is None:
-        return jsonify({"error": "Missing required fields"}), 400
+    templates = DropzoneTemplate.query.filter_by(map_id=game.map_id).all()
+    if not templates:
+        return jsonify({"error": "No templates for this map"}), 400
 
-    new_zone = DropZone(
-        game_id=game.id,
-        name=name,
-        x_percent=x_percent,
-        y_percent=y_percent
-    )
-    db.session.add(new_zone)
+    # ensure one assignment per template for this game
+    existing = DropzoneAssignment.query.filter_by(game_id=game.id).all()
+    existing_zone_ids = {a.dropzone_id for a in existing}
+
+    created = 0
+    for t in templates:
+        if t.id in existing_zone_ids:
+            continue
+        assignment = DropzoneAssignment(game_id=game.id, dropzone_id=t.id)
+        db.session.add(assignment)
+        created += 1
+
     db.session.commit()
+    return jsonify({"message": "Dropzones created for game", "created": created}), 201
 
-    return jsonify({
-        "message": "Drop zone created",
-        "drop_zone": {
-            "id": new_zone.id,
-            "name": new_zone.name,
-            "x_percent": new_zone.x_percent,
-            "y_percent": new_zone.y_percent,
-            "game_id": new_zone.game_id
-        }
-    }), 201
 
-# ✅ Получить все дроп-зоны для игры
 @dropzone_bp.route('/games/<int:game_id>/dropzones', methods=['GET'])
-def get_drop_zones_for_game(game_id):
+def get_dropzones_for_game(game_id):
     """
-    Get all drop zones for a game
+    Get game dropzones (templates + current team assignments)
     ---
     tags:
-      - Drop Zones
+      - Drop Zones (Assignments)
     parameters:
       - name: game_id
         in: path
         type: integer
         required: true
-        description: ID of the game
     responses:
       200:
-        description: List of drop zones
-      404:
-        description: Game not found
+        description: List of dropzones with assignment info
     """
-    game = Game.query.get(game_id)
-    if not game:
-        return jsonify({"error": "Game not found"}), 404
-
-    zones = DropZone.query.filter_by(game_id=game.id).all()
-    result = [{
-        "id": z.id,
-        "name": z.name,
-        "x_percent": z.x_percent,
-        "y_percent": z.y_percent,
-        "teams": [t.id for t in z.teams]
-    } for z in zones]
-
+    assignments = DropzoneAssignment.query.filter_by(game_id=game_id).all()
+    result = []
+    for a in assignments:
+        template = DropzoneTemplate.query.get(a.dropzone_id)
+        result.append({
+            "assignment_id": a.id,
+            "dropzone_id": template.id,
+            "name": template.name,
+            "x_percent": template.x_percent,
+            "y_percent": template.y_percent,
+            "radius": template.radius,
+            "capacity": template.capacity,
+            "team_id": a.team_id
+        })
     return jsonify(result), 200
 
-# ✅ Админ или игрок своей команды: назначить на дроп-зону
-@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:dropzone_id>/assign', methods=['POST'])
+
+# ========================
+# TEAM ASSIGN / REMOVE
+# ========================
+
+@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:assignment_id>/assign', methods=['POST'])
 @jwt_required()
-def assign_team_to_dropzone(game_id, dropzone_id):
+def assign_team(game_id, assignment_id):
     """
-    Assign a team to a drop zone
+    Assign a team to a dropzone assignment
     ---
     tags:
-      - Drop Zones
+      - Drop Zones (Assignments)
     security:
       - BearerAuth: []
     parameters:
@@ -131,7 +118,7 @@ def assign_team_to_dropzone(game_id, dropzone_id):
         in: path
         type: integer
         required: true
-      - name: dropzone_id
+      - name: assignment_id
         in: path
         type: integer
         required: true
@@ -141,61 +128,68 @@ def assign_team_to_dropzone(game_id, dropzone_id):
         schema:
           type: object
           properties:
-            team_id:
-              type: integer
+            team_id: {type: integer, example: 5}
     responses:
       200:
         description: Team assigned
+      400:
+        description: Missing team_id
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      404:
+        description: Not found
+      409:
+        description: Team already assigned elsewhere
     """
     user = User.query.get(get_jwt_identity())
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
-    game = Game.query.get(game_id)
-    if not game:
-        return jsonify({"error": "Game not found"}), 404
+    assignment = DropzoneAssignment.query.get(assignment_id)
+    if not assignment or assignment.game_id != game_id:
+        return jsonify({"error": "Dropzone not found"}), 404
 
-    dropzone = DropZone.query.get(dropzone_id)
-    if not dropzone or dropzone.game_id != game.id:
-        return jsonify({"error": "Drop zone not found"}), 404
-
-    data = request.get_json()
+    data = request.get_json() or {}
     team_id = data.get('team_id')
     if not team_id:
         return jsonify({"error": "Missing team_id"}), 400
 
     team = Team.query.get(team_id)
-    if not team or team.lobby_id != game.lobby_id:
+    if not team:
+        return jsonify({"error": "Team not found"}), 404
+
+    # team must belong to the same lobby as the game
+    game = Game.query.get(game_id)
+    if team.lobby_id != game.lobby_id:
         return jsonify({"error": "Team not found in this lobby"}), 404
 
+    # permissions: admin or player of this team
     if not user.is_admin:
         player = Player.query.filter_by(username=user.username, team_id=team.id).first()
         if not player:
             return jsonify({"error": "You cannot assign for this team"}), 403
 
-    if len(dropzone.teams) >= 2:
-        return jsonify({"error": "Drop zone full"}), 409
+    # team must not be assigned to any other assignment in this game
+    already_assigned = DropzoneAssignment.query.filter_by(game_id=game_id, team_id=team.id).first()
+    if already_assigned:
+        return jsonify({"error": "Team already assigned"}), 409
 
-    assigned_elsewhere = DropZone.query.join(DropZone.teams).filter(
-        DropZone.game_id == game.id, Team.id == team.id
-    ).first()
-    if assigned_elsewhere:
-        return jsonify({"error": "Team already assigned elsewhere"}), 409
-
-    dropzone.teams.append(team)
+    assignment.team_id = team.id
     db.session.commit()
 
-    return jsonify({"message": "Team assigned", "drop_zone_id": dropzone.id}), 200
+    return jsonify({"message": "Team assigned"}), 200
 
-# ✅ Игрок может назначить свою команду
-@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:dropzone_id>/assign_my_team', methods=['POST'])
+
+@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:assignment_id>/remove', methods=['DELETE'])
 @jwt_required()
-def assign_my_team_to_dropzone(game_id, dropzone_id):
+def remove_team(game_id, assignment_id):
     """
-    Assign your own team to a drop zone
+    Remove team from a dropzone assignment
     ---
     tags:
-      - Drop Zones
+      - Drop Zones (Assignments)
     security:
       - BearerAuth: []
     parameters:
@@ -203,199 +197,80 @@ def assign_my_team_to_dropzone(game_id, dropzone_id):
         in: path
         type: integer
         required: true
-      - name: dropzone_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Your team assigned
-    """
-    user = User.query.get(get_jwt_identity())
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    game = Game.query.get(game_id)
-    if not game:
-        return jsonify({"error": "Game not found"}), 404
-
-    dropzone = DropZone.query.get(dropzone_id)
-    if not dropzone or dropzone.game_id != game.id:
-        return jsonify({"error": "Drop zone not found"}), 404
-
-    player = Player.query.filter_by(username=user.username).first()
-    if not player:
-        return jsonify({"error": "You are not in any team"}), 403
-
-    team = Team.query.get(player.team_id)
-    if not team or team.lobby_id != game.lobby_id:
-        return jsonify({"error": "Your team is not in this lobby"}), 403
-
-    if len(dropzone.teams) >= 2:
-        return jsonify({"error": "Drop zone full"}), 409
-
-    existing = DropZone.query.join(DropZone.teams).filter(
-        DropZone.game_id == game.id, Team.id == team.id
-    ).first()
-    if existing:
-        return jsonify({"error": "Your team already assigned elsewhere"}), 409
-
-    dropzone.teams.append(team)
-    db.session.commit()
-
-    return jsonify({"message": "Your team assigned", "drop_zone_id": dropzone.id}), 200
-
-# ✅ Игрок может сменить свою дроп-зону
-@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:dropzone_id>/change_my_team', methods=['POST'])
-@jwt_required()
-def change_my_team_dropzone(game_id, dropzone_id):
-    """
-    Change your team's assigned drop zone
-    ---
-    tags:
-      - Drop Zones
-    security:
-      - BearerAuth: []
-    parameters:
-      - name: game_id
-        in: path
-        type: integer
-        required: true
-      - name: dropzone_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Drop zone updated
-    """
-    user = User.query.get(get_jwt_identity())
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    game = Game.query.get(game_id)
-    if not game:
-        return jsonify({"error": "Game not found"}), 404
-
-    target = DropZone.query.get(dropzone_id)
-    if not target or target.game_id != game.id:
-        return jsonify({"error": "Drop zone not found"}), 404
-
-    player = Player.query.filter_by(username=user.username).first()
-    if not player:
-        return jsonify({"error": "You are not in any team"}), 403
-
-    team = Team.query.get(player.team_id)
-    if not team or team.lobby_id != game.lobby_id:
-        return jsonify({"error": "Your team is not in this lobby"}), 403
-
-    if len(target.teams) >= 2 and team not in target.teams:
-        return jsonify({"error": "Drop zone full"}), 409
-
-    # Remove from all zones in this game
-    for dz in DropZone.query.filter_by(game_id=game.id):
-        if team in dz.teams:
-            dz.teams.remove(team)
-
-    if team not in target.teams:
-        target.teams.append(team)
-
-    db.session.commit()
-
-    return jsonify({"message": "Drop zone updated", "drop_zone_id": target.id}), 200
-
-# ✅ Игрок может освободить свою дроп-зону
-@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:dropzone_id>/remove_my_team', methods=['DELETE'])
-@jwt_required()
-def remove_my_team_from_dropzone(game_id, dropzone_id):
-    """
-    Remove your team from a specific drop zone
-    ---
-    tags:
-      - Drop Zones
-    security:
-      - BearerAuth: []
-    parameters:
-      - name: game_id
-        in: path
-        type: integer
-        required: true
-      - name: dropzone_id
+      - name: assignment_id
         in: path
         type: integer
         required: true
     responses:
       200:
         description: Team removed
+      401:
+        description: Unauthorized
+      403:
+        description: Forbidden
+      404:
+        description: Not found
     """
     user = User.query.get(get_jwt_identity())
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
-    game = Game.query.get(game_id)
-    if not game:
-        return jsonify({"error": "Game not found"}), 404
+    assignment = DropzoneAssignment.query.get(assignment_id)
+    if not assignment or assignment.game_id != game_id:
+        return jsonify({"error": "Dropzone not found"}), 404
 
-    dropzone = DropZone.query.get(dropzone_id)
-    if not dropzone or dropzone.game_id != game.id:
-        return jsonify({"error": "Drop zone not found"}), 404
+    # admin or the assigned team itself
+    if not user.is_admin:
+        player = Player.query.filter_by(username=user.username).first()
+        if not player or assignment.team_id != player.team_id:
+            return jsonify({"error": "You cannot remove this team"}), 403
 
-    player = Player.query.filter_by(username=user.username).first()
-    if not player:
-        return jsonify({"error": "You are not in any team"}), 403
+    assignment.team_id = None
+    db.session.commit()
 
-    team = Team.query.get(player.team_id)
-    if not team or team.lobby_id != game.lobby_id:
-        return jsonify({"error": "Your team is not in this lobby"}), 403
+    return jsonify({"message": "Team removed"}), 200
 
-    if team in dropzone.teams:
-        dropzone.teams.remove(team)
-        db.session.commit()
-
-    return jsonify({
-        "message": "Your team was removed",
-        "drop_zone_id": dropzone.id,
-        "team_removed": team.id
-    }), 200
-
-# ✅ Удалить дроп-зону (админ)
-@dropzone_bp.route('/games/<int:game_id>/dropzones/<int:dropzone_id>', methods=['DELETE'])
-@jwt_required()
-def delete_drop_zone(game_id, dropzone_id):
+@dropzone_bp.route('/dropzones/for-game/<int:game_id>', methods=['GET'])
+def get_dropzones_for_game_full(game_id):
     """
-    Delete a drop zone (Admin only)
+    Full dropzone view for a game: map templates + assignment_id + team info
+    (не конфликтует с /games/<id>/dropzones из других файлов)
     ---
     tags:
-      - Drop Zones
-    security:
-      - BearerAuth: []
+      - Drop Zones (Assignments)
     parameters:
       - name: game_id
         in: path
         type: integer
         required: true
-      - name: dropzone_id
-        in: path
-        type: integer
-        required: true
     responses:
       200:
-        description: Drop zone deleted
+        description: Dropzones with assignment and team info
     """
-    user = User.query.get(get_jwt_identity())
-    if not user or not user.is_admin:
-        return jsonify({"error": "Admin access required"}), 403
-
     game = Game.query.get(game_id)
     if not game:
-        return jsonify({"error": "Game not found"}), 404
+      return jsonify({"error": "Game not found"}), 404
 
-    dropzone = DropZone.query.get(dropzone_id)
-    if not dropzone or dropzone.game_id != game.id:
-        return jsonify({"error": "Drop zone not found"}), 404
+    # все зоны карты (шаблоны)
+    templates = DropzoneTemplate.query.filter_by(map_id=game.map_id).all()
 
-    dropzone.teams.clear()
-    db.session.delete(dropzone)
-    db.session.commit()
+    # все назначения для этой игры
+    assns = DropzoneAssignment.query.filter_by(game_id=game.id).all()
+    by_zone = {a.dropzone_id: a for a in assns}
 
-    return jsonify({"message": "Drop zone deleted"}), 200
+    out = []
+    for t in templates:
+        a = by_zone.get(t.id)
+        team = Team.query.get(a.team_id) if a and a.team_id else None
+        out.append({
+            "id": t.id,               # id шаблона зоны (для ключа/отображения)
+            "name": t.name,
+            "x_percent": t.x_percent,
+            "y_percent": t.y_percent,
+            "radius": t.radius,
+            "capacity": t.capacity,
+            "assignment_id": a.id if a else None,   # нужен для assign/remove
+            "team_id": a.team_id if a else None,
+            "team_name": team.name if team else None,
+        })
+    return jsonify(out), 200

@@ -4,9 +4,12 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
+from flask import jsonify
 
 # Инициализация Flask-приложения
 app = Flask(__name__)
+
+app.json.ensure_ascii = False
 
 # Конфигурация базы данных и JWT
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
@@ -66,13 +69,16 @@ app.register_blueprint(game_bp, url_prefix='/api')
 from routes.dropzone import dropzone_bp
 app.register_blueprint(dropzone_bp, url_prefix='/api')
 
+from routes.maps import maps_bp
+app.register_blueprint(maps_bp, url_prefix="/api")
+
 # Импорт моделей для миграций
-from models import User, Lobby, Game, Team, Player, Result, DropZone, Announcement
+from models import User, Lobby, Game, Team, Player, Result, DropzoneTemplate, DropzoneAssignment, Announcement
 
 # Пример простой проверки
 @app.route('/api/hello', methods=['GET'])
 def hello():
-    return {"message": "Hello from Flask backend!"}, 200
+    return jsonify({"message": "Привет от Flask backend!"})
 
 if __name__ == "__main__":
     app.run(debug=True)

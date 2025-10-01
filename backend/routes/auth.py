@@ -103,6 +103,7 @@ def login():
     if not user or not check_password_hash(user.password_hash, password):
         return jsonify({"error": "Invalid username or password"}), 401
 
+    # ✅ identity как int (не строка)
     access_token = create_access_token(identity=str(user.id))
 
     return jsonify({
@@ -143,7 +144,7 @@ def account():
       404:
         description: User not found
     """
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user:
@@ -189,7 +190,7 @@ def get_users():
       403:
         description: Admin access required
     """
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
     if not user or not user.is_admin:
         return jsonify({"error": "Admin access required"}), 403
@@ -205,6 +206,7 @@ def get_users():
             "is_admin": u.is_admin
         })
     return jsonify(result), 200
+
 
 @auth_bp.route('/account', methods=['DELETE'])
 @jwt_required()
@@ -222,7 +224,7 @@ def delete_account():
       404:
         description: User not found
     """
-    user_id = get_jwt_identity()
+    user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
 
     if not user:

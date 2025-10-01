@@ -1,39 +1,25 @@
+// app/root.tsx
 import {
-  isRouteErrorResponse,
-  Links,
-  Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
+  Link,
+  useNavigate,
 } from "react-router";
+import { useEffect, useState } from "react";
+import { api, getToken, clearToken } from "./lib/api";
 
-import type { Route } from "./+types/root";
-import "./app.css";
-
-export const links: Route.LinksFunction = () => [
-  { rel: "preconnect", href: "https://fonts.googleapis.com" },
-  {
-    rel: "preconnect",
-    href: "https://fonts.gstatic.com",
-    crossOrigin: "anonymous",
-  },
-  {
-    rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
-  },
-];
-
-export function Layout({ children }: { children: React.ReactNode }) {
+// HTML-обвязка (оставляем как было)
+export function Layout() {
   return (
-    <html lang="en">
+    <html lang="ru">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <Meta />
-        <Links />
+        <title>Apex Scrims Frontend</title>
       </head>
       <body>
-        {children}
+        <Outlet />
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -41,35 +27,81 @@ export function Layout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function App() {
-  return <Outlet />;
-}
+// Корневой рендер приложения: общий хедер + контент страниц
+export default function Root() {
+  const [hydrated, setHydrated] = useState(false);
+  const [me, setMe] = useState<any | null>(null);
+  const nav = useNavigate();
 
-export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
-  let details = "An unexpected error occurred.";
-  let stack: string | undefined;
+  useEffect(() => {
+    setHydrated(true);
+    const t = getToken();
+    if (!t) return;
 
-  if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
-    details =
-      error.status === 404
-        ? "The requested page could not be found."
-        : error.statusText || details;
-  } else if (import.meta.env.DEV && error && error instanceof Error) {
-    details = error.message;
-    stack = error.stack;
+    // подтягиваем профиль, если токен есть
+    api("/auth/account", { auth: true })
+      .then(setMe)
+      .catch(() => {
+        clearToken();
+        setMe(null);
+      });
+  }, []);
+
+  function onLogout() {
+    clearToken();
+    setMe(null);
+    nav("/");
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
-      {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
-          <code>{stack}</code>
-        </pre>
-      )}
-    </main>
+    <>
+      <header
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "12px 16px",
+          borderBottom: "1px solid #e5e7eb",
+          position: "sticky",
+          top: 0,
+          background: "white",
+          zIndex: 10,
+        }}
+      >
+        <nav style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <Link to="/" style={{ fontWeight: 700, textDecoration: "none" }}>
+            Apex Scrims
+          </Link>
+          <Link to="/" style={{ textDecoration: "none" }}>
+            Главная
+          </Link>
+          <Link to="/join" style={{ textDecoration: "none" }}>
+            Присоединиться
+          </Link>
+        </nav>
+
+        {/* Правый блок: либо Войти/Регистрация, либо имя + Выход */}
+        {!hydrated ? null : me ? (
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <span>
+              Привет, <b>{me.username}</b>
+              {me.is_admin ? " · admin" : ""}
+            </span>
+            <Link to="/login">Аккаунт</Link>
+            <button onClick={onLogout}>Выйти</button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <Link to="/login">Войти</Link>
+            <Link to="/register">Регистрация</Link>
+          </div>
+        )}
+      </header>
+
+      {/* сюда рендерятся страницы */}
+      <div style={{ padding: 16 }}>
+        <Outlet />
+      </div>
+    </>
   );
 }
