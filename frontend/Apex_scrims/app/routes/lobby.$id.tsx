@@ -1,7 +1,8 @@
 // app/routes/lobby.$id.tsx
-import { useParams } from "react-router";
+import { useParams, Link } from "react-router";
 import { useEffect, useState } from "react";
 import { api, getToken } from "../lib/api";
+import "../app.css";
 
 type LobbyDetails = {
   id: number;
@@ -135,6 +136,9 @@ export default function LobbyPage() {
 
   const [hydrated, setHydrated] = useState(false);
   const [authed, setAuthed] = useState(false);
+  const [activeTab, setActiveTab] = useState<"register" | "table" | "map">("table");
+  const [showSummary, setShowSummary] = useState(false);
+  
   useEffect(() => {
     setHydrated(true);
     setAuthed(!!getToken());
@@ -233,99 +237,510 @@ export default function LobbyPage() {
   }
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1 style={{ marginBottom: 6 }}>
-        {lobby ? `Лобби «${lobby.name}»` : `Лобби #${id}`}
-      </h1>
-      {lobby && (
-        <div style={{ marginBottom: 16, fontSize: 14 }}>
-          Код: <code style={{ fontWeight: 600 }}>{lobby.code}</code>{" "}
-          <button onClick={copyCode} style={{ marginLeft: 8 }}>
-            {copied ? "Скопировано!" : "Скопировать"}
-          </button>
+    <div style={{ minHeight: "100vh" }}>
+      {/* Header */}
+      <header
+        style={{
+          height: "120px",
+          background: "rgba(0, 26, 35, 0.95)",
+          backdropFilter: "blur(10px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}
+      >
+        <div 
+          style={{
+            width: "1000px",
+            maxWidth: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 32px"
+          }}
+        >
+          {/* Левая навигация */}
+          <nav style={{ display: "flex", gap: 60, alignItems: "center" }}>
+            <Link 
+              to="/" 
+              style={{ 
+                textDecoration: "none", 
+                color: "#ffffff",
+                fontSize: "20px",
+                fontWeight: 500,
+                transition: "color 0.2s ease"
+              }}
+            >
+              Главная
+            </Link>
+            <Link 
+              to="/join" 
+              style={{ 
+                textDecoration: "none", 
+                color: "#0096c8",
+                fontSize: "20px", 
+                fontWeight: 500,
+                transition: "color 0.2s ease"
+              }}
+            >
+              Лобби
+            </Link>
+            <Link 
+              to="/profile" 
+              style={{ 
+                textDecoration: "none", 
+                color: "#ffffff",
+                fontSize: "20px", 
+                fontWeight: 500,
+                transition: "color 0.2s ease"
+              }}
+            >
+              Аккаунт
+            </Link>
+            <Link 
+              to="/register" 
+              style={{ 
+                textDecoration: "none", 
+                color: "#ffffff",
+                fontSize: "20px", 
+                fontWeight: 500,
+                transition: "color 0.2s ease"
+              }}
+            >
+              Регистрация
+            </Link>
+          </nav>
+
+          {/* Правый логотип */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <img 
+              src="/Logo white-rgb.png" 
+              alt="Apex Scrims Logo"
+              style={{
+                width: "110px",
+                height: "110px",
+                objectFit: "contain",
+                filter: 'drop-shadow(0 0 15px rgba(0, 150, 200, 0.3))'
+              }}
+            />
+          </div>
         </div>
-      )}
+      </header>
 
-      {/* Итог */}
-      <h2 style={{ marginTop: 16 }}>Итог</h2>
-      {summary.length ? (
-        <table style={{ marginTop: 8, borderCollapse: "collapse", minWidth: 420 }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", padding: 6 }}>Команда</th>
-              <th style={{ textAlign: "right", padding: 6 }}>Очки</th>
-              <th style={{ textAlign: "right", padding: 6 }}>Киллы</th>
-            </tr>
-          </thead>
-          <tbody>
-            {summary.map((r, idx) => (
-              <tr key={`sum-${r.team_id}-${idx}`}>
-                <td style={{ padding: 6, borderTop: "1px solid #ddd" }}>{r.team_name}</td>
-                <td style={{ padding: 6, textAlign: "right", borderTop: "1px solid #ddd" }}>{r.points_total}</td>
-                <td style={{ padding: 6, textAlign: "right", borderTop: "1px solid #ddd" }}>{r.kills_total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p>Пока нет результатов.</p>
-      )}
+      {/* Основной контент */}
+      <main style={{ 
+        padding: "40px 32px",
+        maxWidth: "1200px",
+        margin: "0 auto"
+      }}>
+        {/* Название лобби */}
+        <h1 style={{
+          fontSize: "2.5rem",
+          fontWeight: "700",
+          color: "#ffffff",
+          marginBottom: "40px",
+          textAlign: "center"
+        }}>
+          {lobby ? lobby.name : "Name of lobby"}
+        </h1>
 
-      {/* Игры */}
-      <h2 style={{ marginTop: 24 }}>Игры</h2>
-      {!games.length && <p>Игры ещё не созданы.</p>}
-      {!!games.length && (
-        <>
-          <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-            {games.map((g) => (
+        {/* Большая таблица с навигацией */}
+        <div style={{
+          border: "2px solid #0096c8",
+          borderRadius: "12px",
+          background: "rgba(0, 150, 200, 0.05)",
+          padding: "0",
+          marginBottom: "40px"
+        }}>
+          {/* Навигация сверху таблицы */}
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "20px 32px",
+            borderBottom: "1px solid rgba(0, 150, 200, 0.3)"
+          }}>
+            <div style={{ display: "flex", gap: "32px", alignItems: "center" }}>
               <button
-                key={`game-${g.id}`}
-                onClick={() => setSelectedGameId(g.id)}
+                onClick={() => setActiveTab("register")}
                 style={{
-                  padding: "6px 10px",
-                  border: "1px solid #bbb",
-                  background: selectedGameId === g.id ? "#eee" : "white",
+                  background: "none",
+                  border: "none",
+                  color: activeTab === "register" ? "#0096c8" : "#ffffff",
+                  fontSize: "18px",
+                  fontWeight: 500,
                   cursor: "pointer",
+                  transition: "color 0.2s ease"
                 }}
               >
-                Игра {g.number} {g.map ? `• ${g.map.name}` : ""}
+                Зарегистрировать команду
               </button>
-            ))}
+              <button
+                onClick={() => setActiveTab("table")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: activeTab === "table" ? "#0096c8" : "#ffffff",
+                  fontSize: "18px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "color 0.2s ease"
+                }}
+              >
+                Таблица
+              </button>
+              <button
+                onClick={() => setActiveTab("map")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: activeTab === "map" ? "#0096c8" : "#ffffff",
+                  fontSize: "18px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "color 0.2s ease"
+                }}
+              >
+                Дроп на карте
+              </button>
+            </div>
+
+            {/* Код лобби справа */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <span style={{ color: "#b0bec5", fontSize: "14px" }}>Код лобби:</span>
+              <code style={{ 
+                color: "#ffffff", 
+                fontSize: "16px", 
+                fontWeight: 600,
+                background: "rgba(255, 255, 255, 0.1)",
+                padding: "4px 8px",
+                borderRadius: "4px"
+              }}>
+                {lobby?.code || "ABC123XV"}
+              </code>
+              <button 
+                onClick={copyCode}
+                style={{
+                  background: "rgba(255, 255, 255, 0.1)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: "#ffffff",
+                  padding: "4px 8px",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                {copied ? "✓" : "Copy"}
+              </button>
+            </div>
           </div>
 
-          {/* Таблица результатов выбранной игры */}
-          <div style={{ marginTop: 12 }}>
-            {gameResults.length ? (
-              <table style={{ marginTop: 8, borderCollapse: "collapse", minWidth: 520 }}>
-                <thead>
-                  <tr>
-                    <th style={{ textAlign: "left", padding: 6 }}>Команда</th>
-                    <th style={{ textAlign: "right", padding: 6 }}>Место</th>
-                    <th style={{ textAlign: "right", padding: 6 }}>Киллы</th>
-                    <th style={{ textAlign: "right", padding: 6 }}>Очки</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gameResults.map((r, idx) => (
-                    <tr key={`gr-${r.id ?? `${r.team_id}-${r.place}-${idx}`}`}>
-                      <td style={{ padding: 6, borderTop: "1px solid #ddd" }}>{r.team_name ?? `#${r.team_id}`}</td>
-                      <td style={{ padding: 6, textAlign: "right", borderTop: "1px solid #ddd" }}>{r.place ?? "-"}</td>
-                      <td style={{ padding: 6, textAlign: "right", borderTop: "1px solid #ddd" }}>{r.kills ?? 0}</td>
-                      <td style={{ padding: 6, textAlign: "right", borderTop: "1px solid #ddd" }}>{r.points ?? 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <p>Пока нет результатов выбранной игры.</p>
+          {/* Контент таблицы */}
+          <div style={{ padding: "32px" }}>
+            {activeTab === "table" && (
+              <div style={{ display: "flex", gap: "40px" }}>
+                {/* Левая панель - игры и итог */}
+                <div style={{ width: "300px", flexShrink: 0 }}>
+                  {/* Кнопки игр */}
+                  <div style={{ marginBottom: "24px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {games.map((g) => (
+                        <button
+                          key={`game-${g.id}`}
+                          onClick={() => {
+                            setSelectedGameId(g.id);
+                            setShowSummary(false);
+                          }}
+                          style={{
+                            padding: "12px 16px",
+                            background: selectedGameId === g.id 
+                              ? "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)"
+                              : "rgba(255, 255, 255, 0.1)",
+                            border: selectedGameId === g.id ? "none" : "1px solid rgba(255, 255, 255, 0.2)",
+                            borderRadius: "8px",
+                            color: "#ffffff",
+                            fontSize: "16px",
+                            fontWeight: 500,
+                            cursor: "pointer",
+                            textAlign: "left",
+                            transition: "all 0.2s ease"
+                          }}
+                        >
+                          Игра {g.number} {g.map ? `• ${g.map.name}` : ""}
+                        </button>
+                      ))}
+                      
+                      {/* Кнопка Итог */}
+                      <button
+                        onClick={() => {
+                          setShowSummary(true);
+                          setSelectedGameId(null);
+                        }}
+                        style={{
+                          padding: "12px 16px",
+                          background: showSummary 
+                            ? "linear-gradient(135deg, #dc3545 0%, #c82333 100%)"
+                            : "rgba(220, 53, 69, 0.2)",
+                          border: showSummary ? "none" : "1px solid rgba(220, 53, 69, 0.5)",
+                          borderRadius: "8px",
+                          color: "#ffffff",
+                          fontSize: "16px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          textAlign: "left",
+                          transition: "all 0.2s ease"
+                        }}
+                      >
+                        Итог
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Правая панель - таблица результатов */}
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    background: "rgba(0, 26, 35, 0.3)",
+                    borderRadius: "8px",
+                    overflow: "hidden"
+                  }}>
+                    {showSummary ? (
+                      <>
+                        {/* Заголовок итоговой таблицы */}
+                        <div style={{
+                          display: "grid",
+                          gridTemplateColumns: "50px 1fr 80px 80px 80px",
+                          gap: "16px",
+                          padding: "16px 24px",
+                          background: "rgba(220, 53, 69, 0.2)",
+                          borderBottom: "1px solid rgba(220, 53, 69, 0.3)"
+                        }}>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}></div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Name of team</div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Место</div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Убийства</div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Очки</div>
+                        </div>
+
+                        {/* Строки итоговой таблицы */}
+                        {summary.length > 0 ? summary
+                          .sort((a, b) => b.points_total - a.points_total)
+                          .map((r, idx) => (
+                          <div
+                            key={`sum-${r.team_id}-${idx}`}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "50px 1fr 80px 80px 80px",
+                              gap: "16px",
+                              padding: "16px 24px",
+                              borderBottom: idx < summary.length - 1 ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+                              transition: "background 0.2s ease"
+                            }}
+                          >
+                            <div style={{ color: "#ffffff", fontSize: "16px", fontWeight: 600 }}>
+                              {idx + 1}.
+                            </div>
+                            <div style={{ color: "#ffffff", fontSize: "16px" }}>
+                              {r.team_name}
+                            </div>
+                            <div style={{ color: "#ffffff", fontSize: "16px" }}>
+                              -
+                            </div>
+                            <div style={{ color: "#ffffff", fontSize: "16px" }}>
+                              {r.kills_total}
+                            </div>
+                            <div style={{ color: "#dc3545", fontSize: "16px", fontWeight: 600 }}>
+                              {r.points_total}
+                            </div>
+                          </div>
+                        )) : (
+                          <div style={{ 
+                            padding: "40px 24px", 
+                            textAlign: "center", 
+                            color: "#78909c" 
+                          }}>
+                            Пока нет итоговых результатов
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* Заголовок таблицы игры */}
+                        <div style={{
+                          display: "grid",
+                          gridTemplateColumns: "50px 1fr 80px 80px 80px",
+                          gap: "16px",
+                          padding: "16px 24px",
+                          background: "rgba(0, 150, 200, 0.2)",
+                          borderBottom: "1px solid rgba(0, 150, 200, 0.3)"
+                        }}>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}></div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Name of team</div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Место</div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Убийства</div>
+                          <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 600 }}>Очки</div>
+                        </div>
+
+                        {/* Строки таблицы игры */}
+                        {gameResults.length > 0 ? gameResults
+                          .sort((a, b) => (a.place || 999) - (b.place || 999))
+                          .map((r, idx) => (
+                          <div
+                            key={`gr-${r.id ?? `${r.team_id}-${r.place}-${idx}`}`}
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "50px 1fr 80px 80px 80px",
+                              gap: "16px",
+                              padding: "16px 24px",
+                              borderBottom: idx < gameResults.length - 1 ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+                              transition: "background 0.2s ease"
+                            }}
+                          >
+                            <div style={{ color: "#ffffff", fontSize: "16px", fontWeight: 600 }}>
+                              {idx + 1}.
+                            </div>
+                            <div style={{ color: "#ffffff", fontSize: "16px" }}>
+                              {r.team_name ?? `#${r.team_id}`}
+                            </div>
+                            <div style={{ color: "#ffffff", fontSize: "16px" }}>
+                              {r.place ?? "-"}
+                            </div>
+                            <div style={{ color: "#ffffff", fontSize: "16px" }}>
+                              {r.kills ?? 0}
+                            </div>
+                            <div style={{ color: "#0096c8", fontSize: "16px", fontWeight: 600 }}>
+                              {r.points ?? 0}
+                            </div>
+                          </div>
+                        )) : (
+                          <div style={{ 
+                            padding: "40px 24px", 
+                            textAlign: "center", 
+                            color: "#78909c" 
+                          }}>
+                            {selectedGameId ? "Пока нет результатов выбранной игры" : "Выберите игру для просмотра результатов"}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "register" && (
+              <div style={{ maxWidth: "500px", margin: "0 auto" }}>
+                <h3 style={{ color: "#ffffff", marginBottom: "24px", textAlign: "center" }}>
+                  Регистрация команды
+                </h3>
+                {!hydrated ? null : !authed ? (
+                  <p style={{ color: "#b0bec5", textAlign: "center" }}>
+                    Чтобы зарегистрировать команду, <Link to="/login" style={{ color: "#0096c8" }}>войдите</Link>.
+                  </p>
+                ) : (
+                  <>
+                    <p style={{ 
+                      color: "#b0bec5", 
+                      textAlign: "center", 
+                      marginBottom: "24px",
+                      fontSize: "16px",
+                      lineHeight: "1.5"
+                    }}>
+                      Укажите никнеймы всех участников точно. Капитан отвечает за правильность данных.
+                    </p>
+                    <form onSubmit={onRegisterTeam} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <input 
+                      placeholder="Название команды" 
+                      value={teamName} 
+                      onChange={(e) => setTeamName(e.target.value)} 
+                      required 
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        color: "#ffffff",
+                        fontSize: "16px"
+                      }}
+                    />
+                    <input 
+                      placeholder="Логин игрока 1" 
+                      value={p1} 
+                      onChange={(e) => setP1(e.target.value)} 
+                      required 
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        color: "#ffffff",
+                        fontSize: "16px"
+                      }}
+                    />
+                    <input 
+                      placeholder="Логин игрока 2" 
+                      value={p2} 
+                      onChange={(e) => setP2(e.target.value)} 
+                      required 
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        color: "#ffffff",
+                        fontSize: "16px"
+                      }}
+                    />
+                    <input 
+                      placeholder="Логин игрока 3" 
+                      value={p3} 
+                      onChange={(e) => setP3(e.target.value)} 
+                      required 
+                      style={{
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        border: "1px solid rgba(255, 255, 255, 0.2)",
+                        background: "rgba(255, 255, 255, 0.1)",
+                        color: "#ffffff",
+                        fontSize: "16px"
+                      }}
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={submitting}
+                      style={{
+                        padding: "12px 24px",
+                        background: submitting 
+                          ? "rgba(0, 150, 200, 0.5)" 
+                          : "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+                        border: "none",
+                        borderRadius: "8px",
+                        color: "#ffffff",
+                        fontSize: "16px",
+                        fontWeight: 600,
+                        cursor: submitting ? "not-allowed" : "pointer",
+                        marginTop: "8px"
+                      }}
+                    >
+                      {submitting ? "Отправка…" : "Зарегистрировать"}
+                    </button>
+                    {tMsg && <div style={{ color: "#4caf50", textAlign: "center" }}>{tMsg}</div>}
+                    {tErr && <div style={{ color: "#ff6b6b", textAlign: "center" }}>{tErr}</div>}
+                    </form>
+                  </>
             )}
           </div>
+            )}
 
-          {/* Дроп на карте */}
-          <h2 style={{ marginTop: 24 }}>Дроп на карте</h2>
+            {activeTab === "map" && (
+              <div>
           {(() => {
             const g = games.find((x) => x.id === selectedGameId);
-            if (!g) return <p>Игра не выбрана.</p>;
+                  if (!g) return <p style={{ color: "#78909c", textAlign: "center" }}>Игра не выбрана.</p>;
 
             const hasImage = !!(g.map && g.map.image_url);
 
@@ -333,17 +748,17 @@ export default function LobbyPage() {
               <div
                 style={{
                   position: "relative",
-                  maxWidth: 900,
-                  border: "1px solid #c8d",
-                  borderRadius: 8,
-                  marginTop: 8,
+                        maxWidth: "100%",
+                        border: "2px solid #0096c8",
+                        borderRadius: 12,
+                        overflow: "hidden"
                 }}
               >
                 {hasImage ? (
                   <img
                     src={g!.map!.image_url}
                     alt={g!.map!.name}
-                    style={{ display: "block", width: "100%", height: "auto", borderRadius: 8 }}
+                          style={{ display: "block", width: "100%", height: "auto" }}
                   />
                 ) : (
                   <div
@@ -351,18 +766,18 @@ export default function LobbyPage() {
                       position: "relative",
                       width: "100%",
                       aspectRatio: "16 / 9",
-                      background: "linear-gradient(135deg,#0b2a36,#0e3846)",
-                      borderRadius: 8,
+                            background: "linear-gradient(135deg, #0b2a36, #0e3846)",
                     }}
                   >
                     <div
                       style={{
                         position: "absolute",
-                        left: 12,
-                        top: 8,
+                              left: 24,
+                              top: 16,
                         color: "white",
                         opacity: 0.8,
                         fontWeight: 600,
+                              fontSize: "18px"
                       }}
                     >
                       {g.map?.name ?? "Карта не указана"}
@@ -370,11 +785,10 @@ export default function LobbyPage() {
                   </div>
                 )}
 
-                {/* зоны */}
+                      {/* Дропзоны */}
                 {dropzones.map((z, idx) => {
                   const size = Math.max(z.radius, 4);
                   const key = z.assignment_id ?? z.id ?? `dz-${z.name}-${z.x_percent}-${z.y_percent}-${idx}`;
-                  const mine = false; // подсветку «моей» зоны можно добавить позже при наличии team_id пользователя
 
                   return (
                     <div
@@ -387,93 +801,79 @@ export default function LobbyPage() {
                         transform: "translate(-50%, -50%)",
                         width: `${size}%`,
                         height: `${size}%`,
-                        borderRadius: "999px",
-                        background: "rgba(255,255,255,0.7)",
-                        border: "1px solid rgba(0,0,0,0.25)",
+                              borderRadius: "50%",
+                              background: "rgba(0, 150, 200, 0.8)",
+                              border: "2px solid #ffffff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         textAlign: "center",
-                        padding: 2,
+                              padding: 4,
                         fontSize: 12,
                         fontWeight: 600,
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.25)",
-                        backdropFilter: "blur(2px)",
+                              color: "#ffffff",
+                              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+                              cursor: "pointer"
                       }}
                     >
                       <div>
                         <div>{z.name}</div>
-
-                        {/* Кнопки действий */}
-                        <div style={{ marginTop: 4 }}>
-                          {!z.assigned_team ? (
-                            <button
-                              onClick={() => z.assignment_id && assign(z.assignment_id)}
-                              style={{ fontSize: 12 }}
-                            >
-                              Занять
-                            </button>
-                          ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "center" }}>
-                              <div style={{ fontSize: 11, opacity: 0.9 }}>
+                              {z.assigned_team && (
+                                <div style={{ fontSize: 10, marginTop: 2, opacity: 0.9 }}>
                                 {z.assigned_team.name}
-                              </div>
-                              <button
-                                onClick={() => z.assignment_id && unassign(z.assignment_id)}
-                                style={{ fontSize: 12 }}
-                              >
-                                Снять
-                              </button>
                             </div>
                           )}
-                        </div>
                       </div>
                     </div>
                   );
                 })}
 
                 {!dropzones.length && (
-                  <p
+                        <div
                     style={{
                       position: "absolute",
                       inset: 0,
-                      margin: "auto",
-                      width: "max-content",
-                      height: "max-content",
-                      background: "rgba(255,255,255,0.85)",
-                      padding: "6px 10px",
-                      borderRadius: 6,
-                    }}
-                  >
-                    Зоны не добавлены для этой карты.
-                  </p>
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "rgba(0, 0, 0, 0.5)",
+                            color: "#ffffff",
+                            fontSize: "18px"
+                          }}
+                        >
+                          Зоны не добавлены для этой карты
+                        </div>
                 )}
               </div>
             );
           })()}
-        </>
-      )}
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
 
-      {/* Регистрация команды — рендерим только после гидратации */}
-      <h2 style={{ marginTop: 32 }}>Регистрация команды</h2>
-      {!hydrated ? null : !authed ? (
-        <p>
-          Чтобы зарегистрировать команду, <a href="/login">войдите</a>.
-        </p>
-      ) : (
-        <form onSubmit={onRegisterTeam} style={{ display: "grid", gap: 8, maxWidth: 520, marginTop: 8 }}>
-          <input placeholder="Название команды" value={teamName} onChange={(e) => setTeamName(e.target.value)} required />
-          <input placeholder="Логин игрока 1" value={p1} onChange={(e) => setP1(e.target.value)} required />
-          <input placeholder="Логин игрока 2" value={p2} onChange={(e) => setP2(e.target.value)} required />
-          <input placeholder="Логин игрока 3" value={p3} onChange={(e) => setP3(e.target.value)} required />
-          <button type="submit" disabled={submitting}>{submitting ? "Отправка…" : "Зарегистрировать"}</button>
-          {tMsg && <div style={{ color: "green" }}>{tMsg}</div>}
-          {tErr && <div style={{ color: "crimson" }}>{tErr}</div>}
-          <p style={{ fontSize: 12, opacity: 0.7 }}>
-            Игроки должны быть зарегистрированы как пользователи.
+      {/* Футер */}
+      <footer 
+        style={{
+          textAlign: "center",
+          padding: "40px 32px",
+          borderTop: "1px solid rgba(255, 255, 255, 0.1)"
+        }}
+      >
+        <div style={{ marginBottom: "16px" }}>
+          <p style={{ color: "#0096c8", fontWeight: "600", marginBottom: "8px" }}>
+            Join us
           </p>
-        </form>
-      )}
-    </main>
+          <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+            <a href="#" style={{ color: "#78909c" }}>discord</a>
+            <a href="#" style={{ color: "#78909c" }}>e-mail</a>
+          </div>
+        </div>
+        <p style={{ color: "#546e7a", fontSize: "14px" }}>
+          prod by xxx
+        </p>
+      </footer>
+    </div>
   );
 }

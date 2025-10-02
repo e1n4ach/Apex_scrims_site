@@ -274,3 +274,4 @@ def get_dropzones_for_game_full(game_id):
             "team_name": team.name if team else None,
         })
     return jsonify(out), 200
+  

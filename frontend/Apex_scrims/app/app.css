@@ -1,15 +1,68 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap');
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
+  --font-sans: "Exo 2", "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+/* Глобальные стили для темной темы Apex */
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+    margin: 0;
+  padding: 0;
+  background-color: #001A23;
+  color: #ffffff;
+  font-family: "Exo 2", "Inter", ui-sans-serif, system-ui, sans-serif;
+  min-height: 100vh;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
-  }
+* {
+  box-sizing: border-box;
+}
+
+/* Стили для ссылок */
+a {
+  color: #0096c8;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: #00b4e6;
+}
+
+/* Кнопки */
+button {
+  background: linear-gradient(135deg, #0096c8 0%, #007ba7 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: linear-gradient(135deg, #007ba7 0%, #005f86 100%);
+  transform: translateY(-1px);
+}
+
+/* Анимация загрузки */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hover эффекты для карточек */
+.scrim-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 150, 200, 0.4);
+}
+
+/* Hover эффекты для навигации */
+nav a:hover {
+  color: #0096c8 !important;
 }

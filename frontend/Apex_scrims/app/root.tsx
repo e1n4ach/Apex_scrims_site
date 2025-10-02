@@ -60,48 +60,86 @@ export default function Root() {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "12px 16px",
-          borderBottom: "1px solid #e5e7eb",
+          padding: "16px 32px",
+          background: "rgba(0, 26, 35, 0.95)",
+          backdropFilter: "blur(10px)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
           position: "sticky",
           top: 0,
-          background: "white",
-          zIndex: 10,
+          zIndex: 50,
         }}
       >
-        <nav style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <Link to="/" style={{ fontWeight: 700, textDecoration: "none" }}>
-            Apex Scrims
-          </Link>
-          <Link to="/" style={{ textDecoration: "none" }}>
+        {/* Левая навигация */}
+        <nav style={{ display: "flex", gap: 48, alignItems: "center" }}>
+          <Link 
+            to="/" 
+            style={{ 
+              textDecoration: "none", 
+              color: "#ffffff",
+              fontSize: "18px",
+              fontWeight: 500,
+              transition: "color 0.2s ease"
+            }}
+          >
             Главная
           </Link>
-          <Link to="/join" style={{ textDecoration: "none" }}>
-            Присоединиться
+          <Link 
+            to="/join" 
+            style={{ 
+              textDecoration: "none", 
+              color: "#ffffff",
+              fontSize: "18px", 
+              fontWeight: 500,
+              transition: "color 0.2s ease"
+            }}
+          >
+            Лобби
+          </Link>
+          <Link 
+            to="/login" 
+            style={{ 
+              textDecoration: "none", 
+              color: "#ffffff",
+              fontSize: "18px", 
+              fontWeight: 500,
+              transition: "color 0.2s ease"
+            }}
+          >
+            Аккаунт
+          </Link>
+          <Link 
+            to="/register" 
+            style={{ 
+              textDecoration: "none", 
+              color: "#ffffff",
+              fontSize: "18px", 
+              fontWeight: 500,
+              transition: "color 0.2s ease"
+            }}
+          >
+            Регистрация
           </Link>
         </nav>
 
-        {/* Правый блок: либо Войти/Регистрация, либо имя + Выход */}
-        {!hydrated ? null : me ? (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span>
-              Привет, <b>{me.username}</b>
-              {me.is_admin ? " · admin" : ""}
-            </span>
-            <Link to="/login">Аккаунт</Link>
-            <button onClick={onLogout}>Выйти</button>
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <Link to="/login">Войти</Link>
-            <Link to="/register">Регистрация</Link>
-          </div>
-        )}
+        {/* Правый логотип */}
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <img 
+            src="/Logo white-rgb.png" 
+            alt="Apex Scrims Logo"
+            style={{
+              width: "170px",
+              height: "170px",
+              objectFit: "contain",
+              filter: 'drop-shadow(0 0 20px rgba(0, 150, 200, 0.3))'
+            }}
+          />
+        </div>
       </header>
 
       {/* сюда рендерятся страницы */}
-      <div style={{ padding: 16 }}>
+      <main>
         <Outlet />
-      </div>
+      </main>
     </>
   );
 }

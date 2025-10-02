@@ -28,6 +28,61 @@ def _serialize_game(g: Game):
 def create_game(lobby_id):
     """
     Create a new game in a lobby (Admin only)
+    ---
+    tags:
+      - Games
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lobby_id
+        type: integer
+        required: true
+        description: ID of the lobby
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            number:
+              type: integer
+              description: Game number in the lobby
+            map_id:
+              type: integer
+              description: ID of the map for this game
+    responses:
+      201:
+        description: Game created successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            game:
+              type: object
+              properties:
+                id:
+                  type: integer
+                number:
+                  type: integer
+                lobby_id:
+                  type: integer
+                map:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    image_url:
+                      type: string
+      400:
+        description: Missing required fields
+      403:
+        description: Admin access required
+      404:
+        description: Lobby or map not found
     """
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
@@ -60,6 +115,40 @@ def create_game(lobby_id):
 def get_games_for_lobby(lobby_id):
     """
     List games for a lobby (with embedded map)
+    ---
+    tags:
+      - Games
+    parameters:
+      - in: path
+        name: lobby_id
+        type: integer
+        required: true
+        description: ID of the lobby
+    responses:
+      200:
+        description: List of games in the lobby
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              number:
+                type: integer
+              lobby_id:
+                type: integer
+              map:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  name:
+                    type: string
+                  image_url:
+                    type: string
+      404:
+        description: Lobby not found
     """
     lobby = Lobby.query.get(lobby_id)
     if not lobby:
@@ -79,6 +168,34 @@ def get_games_for_lobby(lobby_id):
 def delete_game(lobby_id, game_id):
     """
     Delete a game (Admin only)
+    ---
+    tags:
+      - Games
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: path
+        name: lobby_id
+        type: integer
+        required: true
+        description: ID of the lobby
+      - in: path
+        name: game_id
+        type: integer
+        required: true
+        description: ID of the game to delete
+    responses:
+      200:
+        description: Game deleted successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      403:
+        description: Admin access required
+      404:
+        description: Lobby or game not found
     """
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
@@ -106,6 +223,66 @@ def delete_game(lobby_id, game_id):
 def add_result(game_id):
     """
     Add a result for a team in a game (Admin only)
+    ---
+    tags:
+      - Results
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: game_id
+        type: integer
+        required: true
+        description: ID of the game
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            team_id:
+              type: integer
+              description: ID of the team
+            place:
+              type: integer
+              description: Team's placement in the game
+            kills:
+              type: integer
+              description: Number of kills
+            points:
+              type: integer
+              description: Points earned
+    responses:
+      201:
+        description: Result saved successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            result:
+              type: object
+              properties:
+                id:
+                  type: integer
+                game_id:
+                  type: integer
+                team_id:
+                  type: integer
+                place:
+                  type: integer
+                kills:
+                  type: integer
+                points:
+                  type: integer
+      400:
+        description: Missing required fields
+      403:
+        description: Admin access required
+      404:
+        description: Game or team not found
+      409:
+        description: Result for this team already exists
     """
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
@@ -160,6 +337,37 @@ def add_result(game_id):
 def get_results_for_game(game_id):
     """
     Get results for a game
+    ---
+    tags:
+      - Results
+    parameters:
+      - in: path
+        name: game_id
+        type: integer
+        required: true
+        description: ID of the game
+    responses:
+      200:
+        description: List of results for the game
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              team_id:
+                type: integer
+              team_name:
+                type: string
+              place:
+                type: integer
+              kills:
+                type: integer
+              points:
+                type: integer
+      404:
+        description: Game not found
     """
     game = Game.query.get(game_id)
     if not game:
@@ -189,6 +397,33 @@ def get_results_for_game(game_id):
 def get_lobby_results_summary(lobby_id):
     """
     Aggregate results for a lobby (public)
+    ---
+    tags:
+      - Results
+    parameters:
+      - in: path
+        name: lobby_id
+        type: integer
+        required: true
+        description: ID of the lobby
+    responses:
+      200:
+        description: Summary of all results in the lobby
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              team_id:
+                type: integer
+              team_name:
+                type: string
+              kills_total:
+                type: integer
+              points_total:
+                type: integer
+      404:
+        description: Lobby not found
     """
     lobby = Lobby.query.get(lobby_id)
     if not lobby:
@@ -227,6 +462,64 @@ def get_lobby_results_summary(lobby_id):
 def update_result(game_id, result_id):
     """
     Update an existing result (Admin only)
+    ---
+    tags:
+      - Results
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: game_id
+        type: integer
+        required: true
+        description: ID of the game
+      - in: path
+        name: result_id
+        type: integer
+        required: true
+        description: ID of the result to update
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            place:
+              type: integer
+              description: Team's placement in the game
+            kills:
+              type: integer
+              description: Number of kills
+            points:
+              type: integer
+              description: Points earned
+    responses:
+      200:
+        description: Result updated successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+            result:
+              type: object
+              properties:
+                id:
+                  type: integer
+                game_id:
+                  type: integer
+                team_id:
+                  type: integer
+                place:
+                  type: integer
+                kills:
+                  type: integer
+                points:
+                  type: integer
+      403:
+        description: Admin access required
+      404:
+        description: Game or result not found
     """
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
@@ -268,6 +561,34 @@ def update_result(game_id, result_id):
 def delete_result(game_id, result_id):
     """
     Delete a result (Admin only)
+    ---
+    tags:
+      - Results
+    security:
+      - Bearer: []
+    parameters:
+      - in: path
+        name: game_id
+        type: integer
+        required: true
+        description: ID of the game
+      - in: path
+        name: result_id
+        type: integer
+        required: true
+        description: ID of the result to delete
+    responses:
+      200:
+        description: Result deleted successfully
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+      403:
+        description: Admin access required
+      404:
+        description: Game or result not found
     """
     user_id = int(get_jwt_identity())
     user = User.query.get(user_id)
