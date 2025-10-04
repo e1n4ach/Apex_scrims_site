@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app import db
 from models import (
@@ -16,7 +16,7 @@ def _serialize_game(g: Game):
         "map": {
             "id": g.map.id,
             "name": g.map.name,
-            "image_url": g.map.image_url
+            "image_url": url_for("static", filename=f"maps/{g.map.image_filename}", _external=True)
         } if g.map else None
     }
 

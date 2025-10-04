@@ -46,7 +46,8 @@ class Map(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
-    image_url = db.Column(db.String(255), nullable=False)
+    image_filename = db.Column(db.String(255), nullable=False)
+    image_url = db.Column(db.String(255), nullable=True)
 
     dropzones = db.relationship(
         "DropzoneTemplate", backref="map", lazy=True,
