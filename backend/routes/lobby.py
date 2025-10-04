@@ -104,7 +104,8 @@ def get_all_lobbies():
     for lobby in lobbies:
         result.append({
             "id": lobby.id,
-            "name": lobby.name
+            "name": lobby.name,
+            "code": lobby.code
         })
     return jsonify(result), 200
 

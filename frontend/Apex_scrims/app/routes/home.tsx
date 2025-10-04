@@ -13,7 +13,7 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-type Lobby = { id: number; name: string };
+type Lobby = { id: number; name: string; code: string };
 
 export default function Home() {
   const [hello, setHello] = useState<string>("…");
@@ -165,7 +165,9 @@ export default function Home() {
           alignItems: "center",
           justifyContent: "center",
           padding: "80px 32px",
-          minHeight: "600px"
+          minHeight: "600px",
+          position: "relative",
+          overflow: "hidden"
         }}
       >
         <div 
@@ -178,7 +180,7 @@ export default function Home() {
           }}
         >
           {/* Левый логотип */}
-          <div style={{ flex: "0 0 auto" }}>
+          <div style={{ flex: "0 0 auto" }} className="animate-fade-in-left">
             <img 
               src="/Logo white-rgb.png" 
               alt="Apex Scrims Logo"
@@ -192,7 +194,7 @@ export default function Home() {
           </div>
 
           {/* Правый текстовый блок */}
-          <div style={{ flex: "1", minWidth: 0 }}>
+          <div style={{ flex: "1", minWidth: 0 }} className="animate-fade-in-right">
             <h1 
               style={{
                 fontSize: "4.5rem",
@@ -212,7 +214,8 @@ export default function Home() {
                 color: "#ffffff",
                 fontWeight: "600",
                 marginBottom: "32px",
-                lineHeight: "1.4"
+                lineHeight: "1.4",
+                textShadow: "0 2px 10px rgba(0, 150, 200, 0.2)"
               }}
             >
               Лучший сайт для проведения скримов Apex Legends
@@ -246,19 +249,21 @@ export default function Home() {
         }}
       >
         <h2 
+          className="animate-fade-in-up"
           style={{
             fontSize: "2.5rem",
             fontWeight: "700",
             textAlign: "center",
             marginBottom: "16px",
-            color: "#ffffff"
+            color: "#ffffff",
+            textShadow: "0 2px 10px rgba(0, 150, 200, 0.3)"
           }}
         >
-          Анонсы скримов:
+          Последние лобби:
         </h2>
         
         {loading ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
+          <div style={{ textAlign: "center", padding: "60px 0" }} className="animate-fade-in-up">
             <div 
               style={{
                 display: "inline-block",
@@ -267,19 +272,20 @@ export default function Home() {
                 border: "4px solid rgba(0, 150, 200, 0.3)",
                 borderTop: "4px solid #0096c8",
                 borderRadius: "50%",
-                animation: "spin 1s linear infinite"
+                animation: "spin 1s linear infinite",
+                boxShadow: "0 0 20px rgba(0, 150, 200, 0.3)"
               }}
             />
-            <p style={{ color: "#78909c", marginTop: "16px" }}>Загружаем скримы...</p>
+            <p style={{ color: "#78909c", marginTop: "16px" }}>Загружаем лобби...</p>
           </div>
         ) : err ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
+          <div style={{ textAlign: "center", padding: "60px 0" }} className="animate-fade-in-up">
             <p style={{ color: "#f44336", fontSize: "18px" }}>{err}</p>
           </div>
         ) : !lobbies.length ? (
-          <div style={{ textAlign: "center", padding: "60px 0" }}>
-            <p style={{ color: "#78909c", fontSize: "18px" }}>Пока нет активных скримов.</p>
-            <p style={{ color: "#546e7a", marginTop: "8px" }}>Скоро здесь появятся новые турниры!</p>
+          <div style={{ textAlign: "center", padding: "60px 0" }} className="animate-fade-in-up">
+            <p style={{ color: "#78909c", fontSize: "18px" }}>Пока нет лобби.</p>
+            <p style={{ color: "#546e7a", marginTop: "8px" }}>Скоро здесь появятся новые лобби!</p>
           </div>
         ) : (
           <div 
@@ -290,92 +296,61 @@ export default function Home() {
               marginTop: "48px"
             }}
           >
-            {/* Пример карточек скримов по макету */}
-            <div 
-              style={{
-                background: "linear-gradient(135deg, rgba(0, 150, 200, 0.1) 0%, rgba(0, 123, 167, 0.05) 100%)",
-                border: "2px solid #0096c8",
-                borderRadius: "12px",
-                padding: "32px",
-                textAlign: "center",
-                transition: "all 0.3s ease"
-              }}
-            >
-              <h3 
+            {/* Карточки лобби */}
+            {lobbies.slice(0, 4).map((lobby, index) => (
+              <div 
+                key={lobby.id}
+                className="lobby-card animate-fade-in-up"
                 style={{
-                  fontSize: "1.5rem",
-                  fontWeight: "700",
-                  color: "#ffffff",
-                  marginBottom: "16px"
+                  background: "linear-gradient(135deg, rgba(0, 150, 200, 0.1) 0%, rgba(0, 123, 167, 0.05) 100%)",
+                  border: "2px solid #0096c8",
+                  borderRadius: "12px",
+                  padding: "32px",
+                  textAlign: "center",
+                  transition: "all 0.3s ease",
+                  animationDelay: `${index * 0.2}s`,
+                  boxShadow: "0 8px 25px rgba(0, 150, 200, 0.2)"
                 }}
               >
-                Sanyok Cup 2025
-              </h3>
-              <p style={{ color: "#b0bec5", marginBottom: "8px" }}>
-                Время проведения: 22:00 по МСК
-              </p>
-              <p style={{ color: "#0096c8", fontWeight: "600", marginBottom: "24px" }}>
-                Призовой: 1000$
-              </p>
-              <Link 
-                to="/register"
-                style={{
-                  display: "inline-block",
-                  padding: "10px 20px",
-                  background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
-                  color: "white",
-                  textDecoration: "none",
-                  borderRadius: "6px",
-                  fontWeight: "600",
-                  transition: "all 0.2s ease"
-                }}
-              >
-                Участвовать
-              </Link>
-            </div>
-
-            <div 
-              style={{
-                background: "linear-gradient(135deg, rgba(0, 150, 200, 0.1) 0%, rgba(0, 123, 167, 0.05) 100%)",
-                border: "2px solid #0096c8",
-                borderRadius: "12px",
-                padding: "32px",
-                textAlign: "center",
-                transition: "all 0.3s ease"
-              }}
-            >
-              <h3 
-                style={{
-                  fontSize: "1.5rem",
-                  fontWeight: "700",
-                  color: "#ffffff",
-                  marginBottom: "16px"
-                }}
-              >
-                Sanyok Cup 2025
-              </h3>
-              <p style={{ color: "#b0bec5", marginBottom: "8px" }}>
-                Время проведения: 22:00 по МСК
-              </p>
-              <p style={{ color: "#0096c8", fontWeight: "600", marginBottom: "24px" }}>
-                Призовой: 1000$
-              </p>
-              <Link 
-                to="/register"
-                style={{
-                  display: "inline-block",
-                  padding: "10px 20px",
-                  background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
-                  color: "white",
-                  textDecoration: "none",
-                  borderRadius: "6px",
-                  fontWeight: "600",
-                  transition: "all 0.2s ease"
-                }}
-              >
-                Участвовать
-              </Link>
-            </div>
+                <h3 
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: "700",
+                    color: "#ffffff",
+                    marginBottom: "16px"
+                  }}
+                >
+                  {lobby.name}
+                </h3>
+                <p style={{ color: "#b0bec5", marginBottom: "8px" }}>
+                  Код: {lobby.code}
+                </p>
+                <Link 
+                  to={`/lobby/${lobby.id}`}
+                  style={{
+                    display: "inline-block",
+                    padding: "10px 20px",
+                    background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+                    color: "white",
+                    textDecoration: "none",
+                    borderRadius: "6px",
+                    fontWeight: "600",
+                    transition: "all 0.3s ease",
+                    boxShadow: "0 4px 15px rgba(0, 150, 200, 0.3)"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 8px 25px rgba(0, 150, 200, 0.4)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 4px 15px rgba(0, 150, 200, 0.3)";
+                  }}
+                >
+                  Посмотреть
+                </Link>
+              </div>
+            ))}
           </div>
         )}
       </section>
