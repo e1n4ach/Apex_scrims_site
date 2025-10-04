@@ -126,10 +126,6 @@ class Player(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey("team.id", ondelete="CASCADE"), nullable=False)
     username = db.Column(db.String(120), nullable=False)
 
-    __table_args__ = (
-        db.UniqueConstraint("username", name="uq_player_username"),
-    )
-
     def __repr__(self):
         return f"<Player {self.username}>"
 

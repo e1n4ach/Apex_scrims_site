@@ -135,7 +135,13 @@ export default function LobbyPage() {
           team_id: r.team_id,
           team_name: r.team_name,
         })) as Dropzone[];
-        setDropzones(dz);
+        
+        // Убираем дублирующиеся дропзоны по ID
+        const uniqueDz = dz.filter((zone, index, self) => 
+          index === self.findIndex(z => z.id === zone.id)
+        );
+        
+        setDropzones(uniqueDz);
       })
       .catch(() => setDropzones([]));
   }, [selectedGameId]);
@@ -159,7 +165,7 @@ export default function LobbyPage() {
   const [markMode, setMarkMode] = useState(false);
   
   // информация о команде пользователя
-  const [userTeam, setUserTeam] = useState<{ id: number; name: string } | null>(null);
+  const [userTeam, setUserTeam] = useState<{ id: number; name: string; players: string[] } | null>(null);
 
   // контейнер карты и его размеры (нужно, чтобы переводить проценты в пиксели при старых зонах)
   const mapBoxRef = useRef<HTMLDivElement | null>(null);
@@ -206,7 +212,11 @@ export default function LobbyPage() {
               
               if (foundTeam) {
                 console.log("Найдена команда пользователя:", foundTeam);
-                setUserTeam({ id: foundTeam.id, name: foundTeam.name });
+                setUserTeam({ 
+                  id: foundTeam.id, 
+                  name: foundTeam.name, 
+                  players: foundTeam.players || []
+                });
               } else {
                 console.log("Команда пользователя не найдена");
                 setUserTeam(null);
@@ -290,7 +300,13 @@ export default function LobbyPage() {
             team_id: r.team_id,
             team_name: r.team_name,
           })) as Dropzone[];
-          setDropzones(dz);
+          
+          // Убираем дублирующиеся дропзоны по ID
+          const uniqueDz = dz.filter((zone, index, self) => 
+            index === self.findIndex(z => z.id === zone.id)
+          );
+          
+          setDropzones(uniqueDz);
         })
         .catch(() => {});
     } catch (e) {
@@ -298,21 +314,28 @@ export default function LobbyPage() {
     }
   }
 
-  async function unassign(templateId: number) {
+  async function unassign(assignmentId: number) {
+    console.log("Попытка освободить зону:", assignmentId);
+    console.log("Команда пользователя:", userTeam);
+    console.log("Игра:", selectedGameId);
+    
     if (!userTeam) {
       alert("Вы не состоите в команде в этом лобби");
       return;
     }
     
     try {
-      await api(`/games/${selectedGameId}/dropzones/remove-by-template/${templateId}`, {
+      console.log("Отправляем DELETE запрос на:", `/games/${selectedGameId}/dropzones/${assignmentId}/remove`);
+      await api(`/games/${selectedGameId}/dropzones/${assignmentId}/remove`, {
         auth: true,
         method: "DELETE",
       });
       
       // обновим зоны
+      console.log("Обновляем дропзоны после освобождения...");
       api<any[]>(`/dropzones/for-game/${selectedGameId}`)
         .then((rows) => {
+          console.log("Получены обновленные дропзоны:", rows);
           const dz = rows.map((r) => ({
             id: r.id,
             assignment_id: r.assignment_id,
@@ -329,9 +352,18 @@ export default function LobbyPage() {
             team_id: r.team_id,
             team_name: r.team_name,
           })) as Dropzone[];
-          setDropzones(dz);
+          
+          // Убираем дублирующиеся дропзоны по ID
+          const uniqueDz = dz.filter((zone, index, self) => 
+            index === self.findIndex(z => z.id === zone.id)
+          );
+          
+          console.log("Обработанные дропзоны:", uniqueDz);
+          setDropzones(uniqueDz);
         })
-        .catch(() => {});
+        .catch((error) => {
+          console.error("Ошибка при обновлении дропзон:", error);
+        });
     } catch (e) {
       alert("Не удалось освободить зону: " + (e as any).message);
     }
@@ -518,45 +550,53 @@ export default function LobbyPage() {
               <button
                 onClick={() => setActiveTab("register")}
                 style={{
-                  background: "none",
+                  background: activeTab === "register" ? "rgba(0, 150, 200, 0.1)" : "none",
                   border: "none",
                   color: activeTab === "register" ? "#0096c8" : "#ffffff",
                   fontSize: "18px",
                   fontWeight: 500,
                   cursor: "pointer",
-                  transition: "color 0.2s ease"
+                  transition: "all 0.2s ease",
+                  padding: "8px 16px",
+                  borderRadius: "8px"
                 }}
               >
-                Зарегистрировать команду
+                {userTeam ? "Ваша команда" : "Зарегистрировать команду"}
               </button>
               <button
                 onClick={() => setActiveTab("table")}
                 style={{
-                  background: "none",
+                  background: activeTab === "table" ? "rgba(0, 150, 200, 0.1)" : "none",
                   border: "none",
                   color: activeTab === "table" ? "#0096c8" : "#ffffff",
                   fontSize: "18px",
                   fontWeight: 500,
                   cursor: "pointer",
-                  transition: "color 0.2s ease"
+                  transition: "all 0.2s ease",
+                  padding: "8px 16px",
+                  borderRadius: "8px"
                 }}
               >
                 Таблица
               </button>
-              <button
-                onClick={() => setActiveTab("map")}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: activeTab === "map" ? "#0096c8" : "#ffffff",
-                  fontSize: "18px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "color 0.2s ease"
-                }}
-              >
-                Дроп на карте
-              </button>
+              {!showSummary && (
+                <button
+                  onClick={() => setActiveTab("map")}
+                  style={{
+                    background: activeTab === "map" ? "rgba(0, 150, 200, 0.1)" : "none",
+                    border: "none",
+                    color: activeTab === "map" ? "#0096c8" : "#ffffff",
+                    fontSize: "18px",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                    padding: "8px 16px",
+                    borderRadius: "8px"
+                  }}
+                >
+                  Дроп на карте
+                </button>
+              )}
               {activeTab === "map" && isAdmin && (
                 <button
                   onClick={() => setMarkMode((v) => !v)}
@@ -622,6 +662,7 @@ export default function LobbyPage() {
                           onClick={() => {
                             setSelectedGameId(g.id);
                             setShowSummary(false);
+                            setActiveTab("table");
                           }}
                           style={{
                             padding: "12px 16px",
@@ -647,6 +688,7 @@ export default function LobbyPage() {
                         onClick={() => {
                           setShowSummary(true);
                           setSelectedGameId(null);
+                          setActiveTab("table");
                         }}
                         style={{
                           padding: "12px 16px",
@@ -802,15 +844,161 @@ export default function LobbyPage() {
 
             {activeTab === "register" && (
               <div style={{ maxWidth: "500px", margin: "0 auto" }}>
-                <h3 style={{ color: "#ffffff", marginBottom: "24px", textAlign: "center" }}>
-                  Регистрация команды
-                </h3>
                 {!hydrated ? null : !authed ? (
-                  <p style={{ color: "#b0bec5", textAlign: "center" }}>
-                    Чтобы зарегистрировать команду, <Link to="/login" style={{ color: "#0096c8" }}>войдите</Link>.
-                  </p>
+                  <>
+                    <h3 style={{ color: "#ffffff", marginBottom: "24px", textAlign: "center" }}>
+                      Регистрация команды
+                    </h3>
+                    <p style={{ color: "#b0bec5", textAlign: "center" }}>
+                      Чтобы зарегистрировать команду, <Link to="/login" style={{ color: "#0096c8" }}>войдите</Link>.
+                    </p>
+                  </>
+                ) : userTeam ? (
+                  <>
+                    <h3 style={{ color: "#ffffff", marginBottom: "24px", textAlign: "center" }}>
+                      Ваша команда
+                    </h3>
+                    <div style={{
+                      background: "linear-gradient(135deg, rgba(0, 150, 200, 0.1) 0%, rgba(0, 123, 167, 0.05) 100%)",
+                      border: "2px solid #0096c8",
+                      borderRadius: "16px",
+                      padding: "32px",
+                      boxShadow: "0 8px 25px rgba(0, 150, 200, 0.2)"
+                    }}>
+                      <div style={{ textAlign: "center", marginBottom: "24px" }}>
+                        <div style={{
+                          width: "60px",
+                          height: "60px",
+                          borderRadius: "50%",
+                          background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          margin: "0 auto 16px",
+                          fontSize: "24px",
+                          fontWeight: "700",
+                          color: "#ffffff",
+                          boxShadow: "0 4px 15px rgba(0, 150, 200, 0.3)"
+                        }}>
+                          {userTeam.name.charAt(0).toUpperCase()}
+                        </div>
+                        <h4 style={{ 
+                          color: "#ffffff", 
+                          fontSize: "24px", 
+                          fontWeight: "700",
+                          margin: "0 0 8px 0"
+                        }}>
+                          {userTeam.name}
+                        </h4>
+                        <p style={{ 
+                          color: "#b0bec5", 
+                          fontSize: "14px",
+                          margin: 0
+                        }}>
+                          ID команды: {userTeam.id}
+                        </p>
+                      </div>
+                      
+                      <div style={{
+                        background: "rgba(255, 255, 255, 0.05)",
+                        borderRadius: "12px",
+                        padding: "20px",
+                        marginBottom: "20px"
+                      }}>
+                        <h5 style={{ 
+                          color: "#0096c8", 
+                          fontSize: "16px", 
+                          fontWeight: "600",
+                          margin: "0 0 12px 0"
+                        }}>
+                          Статус команды
+                        </h5>
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px"
+                        }}>
+                          <div style={{
+                            width: "8px",
+                            height: "8px",
+                            borderRadius: "50%",
+                            background: "#4caf50"
+                          }}></div>
+                          <span style={{ color: "#ffffff", fontSize: "14px" }}>
+                            Зарегистрирована и готова к игре
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{
+                        background: "rgba(255, 255, 255, 0.05)",
+                        borderRadius: "12px",
+                        padding: "20px"
+                      }}>
+                        <h5 style={{ 
+                          color: "#0096c8", 
+                          fontSize: "16px", 
+                          fontWeight: "600",
+                          margin: "0 0 12px 0"
+                        }}>
+                          Участники команды
+                        </h5>
+                        <div style={{ 
+                          color: "#b0bec5", 
+                          fontSize: "14px",
+                          lineHeight: "1.6"
+                        }}>
+                          {userTeam.players.length > 0 ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                              {userTeam.players.map((player, index) => (
+                                <div key={index} style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "12px",
+                                  padding: "8px 12px",
+                                  background: "rgba(255, 255, 255, 0.05)",
+                                  borderRadius: "8px",
+                                  border: "1px solid rgba(255, 255, 255, 0.1)"
+                                }}>
+                                  <div style={{
+                                    width: "32px",
+                                    height: "32px",
+                                    borderRadius: "50%",
+                                    background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "14px",
+                                    fontWeight: "700",
+                                    color: "#ffffff"
+                                  }}>
+                                    {player.charAt(0).toUpperCase()}
+                                  </div>
+                                  <span style={{ color: "#ffffff", fontWeight: "500" }}>
+                                    {player}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div style={{ 
+                              color: "#78909c", 
+                              fontStyle: "italic",
+                              textAlign: "center",
+                              padding: "20px"
+                            }}>
+                              Участники не найдены
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 ) : (
                   <>
+                    <h3 style={{ color: "#ffffff", marginBottom: "24px", textAlign: "center" }}>
+                      Регистрация команды
+                    </h3>
                     <p style={{ 
                       color: "#b0bec5", 
                       textAlign: "center", 
@@ -821,109 +1009,128 @@ export default function LobbyPage() {
                       Укажите никнеймы всех участников точно. Капитан отвечает за правильность данных.
                     </p>
                     <form onSubmit={onRegisterTeam} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                    <input 
-                      placeholder="Название команды" 
-                      value={teamName} 
-                      onChange={(e) => setTeamName(e.target.value)} 
-                      required 
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                        background: "rgba(255, 255, 255, 0.1)",
-                        color: "#ffffff",
-                        fontSize: "16px"
-                      }}
-                    />
-                    <input 
-                      placeholder="Логин игрока 1" 
-                      value={p1} 
-                      onChange={(e) => setP1(e.target.value)} 
-                      required 
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                        background: "rgba(255, 255, 255, 0.1)",
-                        color: "#ffffff",
-                        fontSize: "16px"
-                      }}
-                    />
-                    <input 
-                      placeholder="Логин игрока 2" 
-                      value={p2} 
-                      onChange={(e) => setP2(e.target.value)} 
-                      required 
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                        background: "rgba(255, 255, 255, 0.1)",
-                        color: "#ffffff",
-                        fontSize: "16px"
-                      }}
-                    />
-                    <input 
-                      placeholder="Логин игрока 3" 
-                      value={p3} 
-                      onChange={(e) => setP3(e.target.value)} 
-                      required 
-                      style={{
-                        padding: "12px 16px",
-                        borderRadius: "8px",
-                        border: "1px solid rgba(255, 255, 255, 0.2)",
-                        background: "rgba(255, 255, 255, 0.1)",
-                        color: "#ffffff",
-                        fontSize: "16px"
-                      }}
-                    />
-                    <button 
-                      type="submit" 
-                      disabled={submitting}
-                      style={{
-                        padding: "12px 24px",
-                        background: submitting 
-                          ? "rgba(0, 150, 200, 0.5)" 
-                          : "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
-                        border: "none",
-                        borderRadius: "8px",
-                        color: "#ffffff",
-                        fontSize: "16px",
-                        fontWeight: 600,
-                        cursor: submitting ? "not-allowed" : "pointer",
-                        marginTop: "8px"
-                      }}
-                    >
-                      {submitting ? "Отправка…" : "Зарегистрировать"}
-                    </button>
-                    {tMsg && <div style={{ color: "#4caf50", textAlign: "center" }}>{tMsg}</div>}
-                    {tErr && <div style={{ color: "#ff6b6b", textAlign: "center" }}>{tErr}</div>}
+                      <input 
+                        placeholder="Название команды" 
+                        value={teamName} 
+                        onChange={(e) => setTeamName(e.target.value)} 
+                        required 
+                        style={{
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                      <input 
+                        placeholder="Логин игрока 1" 
+                        value={p1} 
+                        onChange={(e) => setP1(e.target.value)} 
+                        required 
+                        style={{
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                      <input 
+                        placeholder="Логин игрока 2" 
+                        value={p2} 
+                        onChange={(e) => setP2(e.target.value)} 
+                        required 
+                        style={{
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                      <input 
+                        placeholder="Логин игрока 3" 
+                        value={p3} 
+                        onChange={(e) => setP3(e.target.value)} 
+                        required 
+                        style={{
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                      <button 
+                        type="submit" 
+                        disabled={submitting}
+                        style={{
+                          padding: "12px 24px",
+                          background: submitting 
+                            ? "rgba(0, 150, 200, 0.5)" 
+                            : "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+                          border: "none",
+                          borderRadius: "8px",
+                          color: "#ffffff",
+                          fontSize: "16px",
+                          fontWeight: 600,
+                          cursor: submitting ? "not-allowed" : "pointer",
+                          marginTop: "8px"
+                        }}
+                      >
+                        {submitting ? "Отправка…" : "Зарегистрировать"}
+                      </button>
+                      {tMsg && <div style={{ color: "#4caf50", textAlign: "center" }}>{tMsg}</div>}
+                      {tErr && <div style={{ color: "#ff6b6b", textAlign: "center" }}>{tErr}</div>}
                     </form>
                   </>
-            )}
-          </div>
+                )}
+              </div>
             )}
 
             {activeTab === "map" && (
               <div>
                 {/* Информация о команде пользователя */}
-                {userTeam && (
-                  <div style={{
-                    background: "rgba(0, 150, 200, 0.1)",
-                    border: "1px solid rgba(0, 150, 200, 0.3)",
-                    borderRadius: "8px",
-                    padding: "12px 16px",
-                    marginBottom: "16px",
-                    textAlign: "center"
-                  }}>
-                    <span style={{ color: "#0096c8", fontWeight: 600 }}>
-                      Ваша команда: {userTeam.name} (ID: {userTeam.id})
-                    </span>
-                    <span style={{ color: "#b0bec5", marginLeft: "8px" }}>
-                      (Вы можете занимать свободные дропзоны)
-                    </span>
-                  </div>
-                )}
+                {userTeam && (() => {
+                  const hasMyTeamInAnyZone = dropzones.some(dz => 
+                    dz.teams && dz.teams.find(t => t.team_id === userTeam.id)
+                  );
+                  const myZone = dropzones.find(dz => 
+                    dz.teams && dz.teams.find(t => t.team_id === userTeam.id)
+                  );
+                  
+                  return (
+                    <div style={{
+                      background: hasMyTeamInAnyZone 
+                        ? "rgba(76, 175, 80, 0.1)" 
+                        : "rgba(0, 150, 200, 0.1)",
+                      border: hasMyTeamInAnyZone 
+                        ? "1px solid rgba(76, 175, 80, 0.3)" 
+                        : "1px solid rgba(0, 150, 200, 0.3)",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
+                      marginBottom: "16px",
+                      textAlign: "center"
+                    }}>
+                      <span style={{ 
+                        color: hasMyTeamInAnyZone ? "#4caf50" : "#0096c8", 
+                        fontWeight: 600 
+                      }}>
+                        Ваша команда: {userTeam.name} (ID: {userTeam.id})
+                      </span>
+                      <span style={{ color: "#b0bec5", marginLeft: "8px" }}>
+                        {hasMyTeamInAnyZone 
+                          ? `(Занята дропзона: ${myZone?.name || "Неизвестная"})`
+                          : "(Вы можете занимать свободные дропзоны)"
+                        }
+                      </span>
+                    </div>
+                  );
+                })()}
                 
                 {!userTeam && authed && (
                   <div style={{
@@ -943,6 +1150,26 @@ export default function LobbyPage() {
                   </div>
                 )}
                 
+                {/* Информация о правилах дропзон */}
+                {userTeam && (
+                  <div style={{
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: "8px",
+                    padding: "12px 16px",
+                    marginBottom: "16px",
+                    textAlign: "center"
+                  }}>
+                    <span style={{ 
+                      color: "#b0bec5", 
+                      fontSize: "14px",
+                      fontWeight: "500"
+                    }}>
+                      💡 Одна команда может занять только одну дропзону в игре
+                    </span>
+                  </div>
+                )}
+
                 {/* Легенда цветов дропзон */}
                 <div style={{
                   display: "flex",
@@ -1054,14 +1281,22 @@ export default function LobbyPage() {
                     raw > 20
                       ? raw
                       : Math.max(Math.round((raw / 100) * (mapBoxSize.w || 0)), 4);
-                  const key = z.assignment_id ?? z.id ?? `dz-${z.name}-${z.x_percent}-${z.y_percent}-${idx}`;
+                  const key = `dz-${z.id}-${z.x_percent}-${z.y_percent}-${idx}`;
                   
                   // проверяем, есть ли наша команда в этом дропзоне
                   const myTeamInZone = userTeam && z.teams.find(t => t.team_id === userTeam.id);
                   const isMyTeam = !!myTeamInZone;
                   
-                  // можем занять, если есть место и наша команда еще не там
-                  const canAssign = userTeam && !isMyTeam && z.current_teams < z.capacity;
+                  // находим assignment_id для нашей команды
+                  const myTeamAssignmentId = myTeamInZone?.assignment_id;
+                  
+                  // проверяем, заняла ли наша команда какую-либо дропзону в этой игре
+                  const hasMyTeamInAnyZone = userTeam && dropzones.some(dz => 
+                    dz.teams && dz.teams.find(t => t.team_id === userTeam.id)
+                  );
+                  
+                  // можем занять, если есть место, наша команда еще не там И не заняла другую дропзону
+                  const canAssign = userTeam && !isMyTeam && z.current_teams < z.capacity && !hasMyTeamInAnyZone;
                   const canUnassign = userTeam && isMyTeam;
 
                   return (
@@ -1147,11 +1382,11 @@ export default function LobbyPage() {
                               Занять
                             </button>
                             )}
-                            {canUnassign && z.id && (
+                            {canUnassign && myTeamAssignmentId && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  unassign(z.id!);
+                                  unassign(myTeamAssignmentId);
                                 }}
                                 style={{
                                   fontSize: 11,

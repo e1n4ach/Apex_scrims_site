@@ -19,8 +19,6 @@ type UserStats = {
     lobby_name: string;
   }>;
   total_games: number;
-  total_kills: number;
-  total_points: number;
   best_placement: number | null;
 };
 
@@ -917,36 +915,6 @@ export default function Profile() {
                       padding: "20px",
                       textAlign: "center"
                     }}>
-                      <div style={{ color: "#4caf50", fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>
-                        {stats.total_kills}
-                      </div>
-                      <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: "500" }}>
-                        Всего убийств
-                      </div>
-                    </div>
-                    
-                    <div style={{
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      borderRadius: "12px",
-                      padding: "20px",
-                      textAlign: "center"
-                    }}>
-                      <div style={{ color: "#ffc107", fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>
-                        {stats.total_points}
-                      </div>
-                      <div style={{ color: "#b0bec5", fontSize: "14px", fontWeight: "500" }}>
-                        Всего очков
-                      </div>
-                    </div>
-                    
-                    <div style={{
-                      background: "rgba(255, 255, 255, 0.05)",
-                      border: "1px solid rgba(255, 255, 255, 0.1)",
-                      borderRadius: "12px",
-                      padding: "20px",
-                      textAlign: "center"
-                    }}>
                       <div style={{ color: "#dc3545", fontSize: "32px", fontWeight: "700", marginBottom: "8px" }}>
                         {stats.best_placement || "-"}
                       </div>
@@ -956,7 +924,7 @@ export default function Profile() {
                     </div>
                   </div>
 
-                  {/* Команды */}
+                  {/* Лобби */}
                   {stats.teams.length > 0 && (
                     <div>
                       <h4 style={{ 
@@ -965,7 +933,7 @@ export default function Profile() {
                         fontWeight: "600",
                         marginBottom: "16px"
                       }}>
-                        Ваши команды
+                        Лобби где вы участвовали
                       </h4>
                       <div style={{ display: "grid", gap: "12px" }}>
                         {stats.teams.map((team) => (
@@ -983,10 +951,10 @@ export default function Profile() {
                           >
                             <div>
                               <div style={{ color: "#ffffff", fontSize: "16px", fontWeight: "600" }}>
-                                {team.name}
+                                {team.lobby_name}
                               </div>
                               <div style={{ color: "#b0bec5", fontSize: "14px" }}>
-                                {team.lobby_name}
+                                Команда: {team.name}
                               </div>
                             </div>
                             <Link

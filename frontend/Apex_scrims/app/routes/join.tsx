@@ -128,89 +128,178 @@ export default function Join() {
         padding: "40px 32px"
       }}>
         <div style={{
-          width: "350px",
+          width: "450px",
           maxWidth: "100%"
         }}>
-          <h1 style={{
-            fontSize: "2.5rem",
-            fontWeight: "700",
-            color: "#ffffff",
-            marginBottom: "40px",
-            textAlign: "left"
+          {/* Заголовок с иконкой */}
+          <div style={{
+            textAlign: "center",
+            marginBottom: "48px"
           }}>
-            Присоединиться к лобби:
-          </h1>
+            <div style={{
+              width: "80px",
+              height: "80px",
+              borderRadius: "50%",
+              background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 24px",
+              fontSize: "32px",
+              boxShadow: "0 8px 25px rgba(0, 150, 200, 0.3)"
+            }}>
+              🎮
+            </div>
+            <h1 style={{
+              fontSize: "2.5rem",
+              fontWeight: "700",
+              color: "#ffffff",
+              marginBottom: "12px",
+              textShadow: "0 2px 10px rgba(0, 150, 200, 0.3)"
+            }}>
+              Присоединиться к лобби
+            </h1>
+            <p style={{
+              color: "#b0bec5",
+              fontSize: "16px",
+              margin: 0,
+              lineHeight: "1.5"
+            }}>
+              Введите код лобби, чтобы присоединиться к игре
+            </p>
+          </div>
 
-          <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div>
-              <label style={{
-                display: "block",
-                color: "#ffffff",
-                fontSize: "16px",
-                fontWeight: "500",
-                marginBottom: "8px"
-              }}>
-                Введите код лобби:
-              </label>
-              <input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                placeholder="ABC123"
-                required
+          {/* Форма в красивой карточке */}
+          <div style={{
+            background: "linear-gradient(135deg, rgba(0, 150, 200, 0.1) 0%, rgba(0, 123, 167, 0.05) 100%)",
+            border: "2px solid #0096c8",
+            borderRadius: "20px",
+            padding: "40px",
+            boxShadow: "0 8px 25px rgba(0, 150, 200, 0.2)",
+            backdropFilter: "blur(10px)"
+          }}>
+            <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div>
+                <label style={{
+                  display: "block",
+                  color: "#0096c8",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  marginBottom: "12px"
+                }}>
+                  Код лобби
+                </label>
+                <input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  placeholder="ABC123"
+                  required
+                  disabled={loading}
+                  style={{
+                    width: "100%",
+                    padding: "16px 20px",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    border: "2px solid rgba(255, 255, 255, 0.2)",
+                    borderRadius: "12px",
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                    color: "#ffffff",
+                    outline: "none",
+                    textTransform: "uppercase",
+                    letterSpacing: "2px",
+                    textAlign: "center",
+                    opacity: loading ? 0.7 : 1,
+                    transition: "all 0.3s ease"
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#0096c8";
+                    e.target.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "rgba(255, 255, 255, 0.2)";
+                    e.target.style.backgroundColor = "rgba(255, 255, 255, 0.1)";
+                  }}
+                />
+                <div style={{
+                  color: "#78909c",
+                  fontSize: "14px",
+                  marginTop: "8px",
+                  textAlign: "center"
+                }}>
+                  Введите код, который дал вам организатор
+                </div>
+              </div>
+
+              <button 
+                type="submit"
                 disabled={loading}
                 style={{
-                  width: "100%",
-                  padding: "12px 16px",
-                  fontSize: "16px",
+                  padding: "16px 32px",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#ffffff",
+                  background: loading 
+                    ? "linear-gradient(135deg, #666666 0%, #555555 100%)"
+                    : "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
                   border: "none",
-                  borderRadius: "8px",
-                  backgroundColor: "#ffffff",
-                  color: "#000000",
-                  outline: "none",
-                  textTransform: "uppercase",
-                  letterSpacing: "1px",
-                  opacity: loading ? 0.7 : 1
+                  borderRadius: "12px",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  transition: "all 0.3s ease",
+                  marginTop: "16px",
+                  opacity: loading ? 0.7 : 1,
+                  boxShadow: loading 
+                    ? "0 4px 15px rgba(0, 0, 0, 0.2)"
+                    : "0 6px 20px rgba(0, 150, 200, 0.4)",
+                  transform: loading ? "none" : "translateY(-2px)"
                 }}
-              />
-            </div>
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = "translateY(-3px)";
+                    e.currentTarget.style.boxShadow = "0 8px 25px rgba(0, 150, 200, 0.5)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 6px 20px rgba(0, 150, 200, 0.4)";
+                  }
+                }}
+              >
+                {loading ? "Поиск лобби..." : "🎯 Присоединиться"}
+              </button>
 
-            <button 
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: "12px 24px",
-                fontSize: "16px",
-                fontWeight: "600",
-                color: "#ffffff",
-                background: loading 
-                  ? "linear-gradient(135deg, #666666 0%, #555555 100%)"
-                  : "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
-                border: "none",
-                borderRadius: "8px",
-                cursor: loading ? "not-allowed" : "pointer",
-                transition: "all 0.2s ease",
-                marginTop: "16px",
-                opacity: loading ? 0.7 : 1
-              }}
-            >
-              {loading ? "Поиск лобби..." : "Присоединиться"}
-            </button>
+              {err && (
+                <div style={{ 
+                  color: "#ff6b6b", 
+                  fontSize: "14px",
+                  textAlign: "center",
+                  marginTop: "16px",
+                  padding: "16px",
+                  background: "rgba(244, 67, 54, 0.1)",
+                  borderRadius: "12px",
+                  border: "1px solid rgba(244, 67, 54, 0.3)",
+                  fontWeight: "500"
+                }}>
+                  ⚠️ {err}
+                </div>
+              )}
+            </form>
+          </div>
 
-            {err && (
-              <div style={{ 
-                color: "#ff6b6b", 
-                fontSize: "14px",
-                textAlign: "center",
-                marginTop: "8px",
-                padding: "12px",
-                background: "rgba(255, 107, 107, 0.1)",
-                borderRadius: "6px",
-                border: "1px solid rgba(255, 107, 107, 0.3)"
-              }}>
-                {err}
-              </div>
-            )}
-          </form>
+          {/* Дополнительная информация */}
+          <div style={{
+            marginTop: "32px",
+            textAlign: "center"
+          }}>
+            <p style={{
+              color: "#78909c",
+              fontSize: "14px",
+              margin: 0,
+              lineHeight: "1.6"
+            }}>
+              Нет кода лобби? Попросите организатора создать лобби и поделиться кодом.
+            </p>
+          </div>
         </div>
       </main>
 

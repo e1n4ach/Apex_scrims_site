@@ -70,10 +70,20 @@ def register_team(lobby_id):
         if not user:
             return jsonify({"error": f"User '{username}' is not registered"}), 400
 
+    # Проверяем, не участвует ли игрок уже в команде в этом же лобби
     for username in players:
-        existing_player = Player.query.filter_by(username=username).first()
-        if existing_player:
-            return jsonify({"error": f"Player '{username}' is already registered in another team"}), 409
+        # Находим все команды в этом лобби
+        teams_in_lobby = Team.query.filter_by(lobby_id=lobby.id).all()
+        team_ids_in_lobby = [team.id for team in teams_in_lobby]
+        
+        # Проверяем, есть ли игрок в какой-либо команде этого лобби
+        if team_ids_in_lobby:
+            existing_player_in_lobby = Player.query.filter(
+                Player.username == username,
+                Player.team_id.in_(team_ids_in_lobby)
+            ).first()
+            if existing_player_in_lobby:
+                return jsonify({"error": f"Player '{username}' is already registered in a team in this lobby"}), 409
 
     new_team = Team(name=name, lobby_id=lobby.id)
     db.session.add(new_team)

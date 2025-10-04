@@ -443,8 +443,6 @@ def get_user_stats():
     return jsonify({
         "teams": teams,
         "total_games": total_games,
-        "total_kills": total_kills,
-        "total_points": total_points,
         "best_placement": best_placement
     }), 200
 

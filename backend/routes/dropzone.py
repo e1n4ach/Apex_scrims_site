@@ -327,14 +327,30 @@ def remove_team(game_id, assignment_id):
     assignment = DropzoneAssignment.query.get(assignment_id)
     if not assignment or assignment.game_id != game_id:
         return jsonify({"error": "Dropzone not found"}), 404
+    
+    print(f"DEBUG: User {user.username} trying to remove assignment {assignment_id}")
+    print(f"DEBUG: Assignment team_id: {assignment.team_id}")
+    print(f"DEBUG: Assignment game_id: {assignment.game_id}")
 
     # admin or the assigned team itself
     if not user.is_admin:
-        player = Player.query.filter_by(username=user.username).first()
-        if not player or assignment.team_id != player.team_id:
+        # Находим игрока в команде, которая назначена на эту дропзону
+        if not assignment.team_id:
+            return jsonify({"error": "No team assigned to this dropzone"}), 404
+            
+        # Проверяем, является ли пользователь игроком команды, назначенной на это assignment
+        player = Player.query.filter_by(
+            username=user.username, 
+            team_id=assignment.team_id
+        ).first()
+        print(f"DEBUG: Player found: {player is not None}")
+        if player:
+            print(f"DEBUG: Player team_id: {player.team_id}")
+        if not player:
             return jsonify({"error": "You cannot remove this team"}), 403
 
-    assignment.team_id = None
+    # Удаляем назначение полностью
+    db.session.delete(assignment)
     db.session.commit()
 
     return jsonify({"message": "Team removed"}), 200
