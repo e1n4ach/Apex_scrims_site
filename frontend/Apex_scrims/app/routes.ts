@@ -7,4 +7,5 @@ export default [
   route("/register", "routes/register.tsx"),
   route("/lobby/:id", "routes/lobby.$id.tsx"),
   route("/profile", "routes/profile.tsx"),
+  route("/admin", "routes/admin.tsx"),
 ] satisfies RouteConfig;

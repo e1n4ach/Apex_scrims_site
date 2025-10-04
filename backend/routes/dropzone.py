@@ -261,21 +261,34 @@ def assign_team_by_template(game_id, template_id):
     if already_assigned:
         return jsonify({"error": "Team already assigned"}), 409
 
-    # find or create assignment for this template
-    assignment = DropzoneAssignment.query.filter_by(game_id=game_id, dropzone_id=template_id).first()
-    created = False
-    if not assignment:
-        assignment = DropzoneAssignment(game_id=game_id, dropzone_id=template_id)
-        db.session.add(assignment)
-        created = True
+    # check if team is already assigned to this dropzone
+    existing_assignment = DropzoneAssignment.query.filter_by(
+        game_id=game_id, 
+        dropzone_id=template_id, 
+        team_id=team.id
+    ).first()
+    if existing_assignment:
+        return jsonify({"error": "Team already assigned to this dropzone"}), 409
 
-    assignment.team_id = team.id
+    # check capacity
+    current_assignments = DropzoneAssignment.query.filter_by(
+        game_id=game_id, 
+        dropzone_id=template_id
+    ).count()
     
+    if current_assignments >= template.capacity:
+        return jsonify({"error": f"Dropzone is at full capacity ({template.capacity} teams)"}), 409
+
+    # create new assignment for this team
+    assignment = DropzoneAssignment(
+        game_id=game_id, 
+        dropzone_id=template_id, 
+        team_id=team.id
+    )
+    db.session.add(assignment)
     db.session.commit()
 
-    status_code = 201 if created else 200
-    message = "Assignment created and team assigned" if created else "Team assigned"
-    return jsonify({"message": message, "assignment_id": assignment.id}), status_code
+    return jsonify({"message": "Team assigned to dropzone", "assignment_id": assignment.id}), 201
 
 
 @dropzone_bp.route('/games/<int:game_id>/dropzones/<int:assignment_id>/remove', methods=['DELETE'])
@@ -368,20 +381,40 @@ def remove_team_by_template(game_id, template_id):
     if not template or template.map_id != game.map_id:
         return jsonify({"error": "Dropzone template not found for this game"}), 404
 
-    assignment = DropzoneAssignment.query.filter_by(game_id=game_id, dropzone_id=template_id).first()
-    if not assignment or not assignment.team_id:
-        return jsonify({"error": "No team assigned to this dropzone"}), 404
-
-    # permissions: admin or player of the assigned team
+    # find user's team assignment to this dropzone
     if not user.is_admin:
-        player = Player.query.filter_by(username=user.username, team_id=assignment.team_id).first()
+        player = Player.query.filter_by(username=user.username).first()
         if not player:
-            return jsonify({"error": "You cannot remove this team"}), 403
+            return jsonify({"error": "You are not a player"}), 403
+        
+        assignment = DropzoneAssignment.query.filter_by(
+            game_id=game_id, 
+            dropzone_id=template_id, 
+            team_id=player.team_id
+        ).first()
+        
+        if not assignment:
+            return jsonify({"error": "Your team is not assigned to this dropzone"}), 404
+    else:
+        # admin can remove any team - we need team_id in request
+        data = request.get_json() or {}
+        team_id = data.get('team_id')
+        if not team_id:
+            return jsonify({"error": "team_id required for admin removal"}), 400
+            
+        assignment = DropzoneAssignment.query.filter_by(
+            game_id=game_id, 
+            dropzone_id=template_id, 
+            team_id=team_id
+        ).first()
+        
+        if not assignment:
+            return jsonify({"error": "Team not assigned to this dropzone"}), 404
 
-    assignment.team_id = None
+    db.session.delete(assignment)
     db.session.commit()
 
-    return jsonify({"message": "Team removed"}), 200
+    return jsonify({"message": "Team removed from dropzone"}), 200
 
 
 @dropzone_bp.route('/dropzones/for-game/<int:game_id>', methods=['GET'])
@@ -410,12 +443,20 @@ def get_dropzones_for_game_full(game_id):
 
     # все назначения для этой игры
     assns = DropzoneAssignment.query.filter_by(game_id=game.id).all()
-    by_zone = {a.dropzone_id: a for a in assns}
+    by_zone = {}
+    for a in assns:
+        if a.dropzone_id not in by_zone:
+            by_zone[a.dropzone_id] = []
+        team = Team.query.get(a.team_id) if a.team_id else None
+        by_zone[a.dropzone_id].append({
+            "assignment_id": a.id,
+            "team_id": a.team_id,
+            "team_name": team.name if team else None,
+        })
 
     out = []
     for t in templates:
-        a = by_zone.get(t.id)
-        team = Team.query.get(a.team_id) if a and a.team_id else None
+        assignments = by_zone.get(t.id, [])
         out.append({
             "id": t.id,               # id шаблона зоны (для ключа/отображения)
             "name": t.name,
@@ -423,9 +464,12 @@ def get_dropzones_for_game_full(game_id):
             "y_percent": t.y_percent,
             "radius": t.radius,
             "capacity": t.capacity,
-            "assignment_id": a.id if a else None,   # нужен для assign/remove
-            "team_id": a.team_id if a else None,
-            "team_name": team.name if team else None,
+            "current_teams": len(assignments),
+            "teams": assignments,     # список всех команд в этой зоне
+            # для обратной совместимости
+            "assignment_id": assignments[0]["assignment_id"] if assignments else None,
+            "team_id": assignments[0]["team_id"] if assignments else None,
+            "team_name": assignments[0]["team_name"] if assignments else None,
         })
     return jsonify(out), 200
   

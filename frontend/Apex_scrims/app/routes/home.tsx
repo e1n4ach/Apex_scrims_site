@@ -1,7 +1,7 @@
 // app/routes/home.tsx
 import type { Route } from "./+types/home";
 import { useEffect, useState } from "react";
-import { api } from "../lib/api";
+import { api, getToken } from "../lib/api";
 import { Link } from "react-router";
 import { ApexLogo } from "../components/ApexLogo";
 import "../app.css";
@@ -20,8 +20,12 @@ export default function Home() {
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    setHydrated(true);
+    
     api<{ message: string }>("/hello")
       .then((d) => setHello(d.message))
       .catch(() => setHello(""));
@@ -32,6 +36,17 @@ export default function Home() {
       .then(setLobbies)
       .catch((e: any) => setErr(e.message || "Не удалось загрузить лобби"))
       .finally(() => setLoading(false));
+
+    // Проверяем, является ли пользователь админом
+    if (getToken()) {
+      api<{ is_admin: boolean; username: string }>("/auth/account", { auth: true })
+        .then((user) => {
+          setIsAdmin(!!user.is_admin);
+        })
+        .catch(() => {
+          setIsAdmin(false);
+        });
+    }
   }, []);
 
   return (
@@ -111,6 +126,20 @@ export default function Home() {
             >
               Регистрация
             </Link>
+            {hydrated && isAdmin && (
+              <Link 
+                to="/admin" 
+                style={{ 
+                  textDecoration: "none", 
+                  color: "#ffc107",
+                  fontSize: "20px", 
+                  fontWeight: 600,
+                  transition: "color 0.2s ease"
+                }}
+              >
+                Админка
+              </Link>
+            )}
           </nav>
 
           {/* Правый логотип */}

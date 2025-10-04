@@ -35,6 +35,12 @@ type GameResult = {
   points: number | null;
 };
 
+type DropzoneTeam = {
+  assignment_id: number;
+  team_id: number;
+  team_name: string;
+};
+
 type Dropzone = {
   id?: number;
   assignment_id?: number;
@@ -43,6 +49,8 @@ type Dropzone = {
   y_percent: number;
   radius: number;
   capacity: number;
+  current_teams: number;
+  teams: DropzoneTeam[];
   assigned_team?: { id: number; name: string } | null;
   team_id?: number | null;
   team_name?: string | null;
@@ -119,6 +127,8 @@ export default function LobbyPage() {
           y_percent: r.y_percent,
           radius: r.radius,
           capacity: r.capacity,
+          current_teams: r.current_teams || 0,
+          teams: r.teams || [],
           assigned_team: r.team_id
             ? { id: r.team_id, name: r.team_name || `#${r.team_id}` }
             : null,
@@ -272,6 +282,8 @@ export default function LobbyPage() {
             y_percent: r.y_percent,
             radius: r.radius,
             capacity: r.capacity,
+            current_teams: r.current_teams || 0,
+            teams: r.teams || [],
             assigned_team: r.team_id
               ? { id: r.team_id, name: r.team_name || `#${r.team_id}` }
               : null,
@@ -309,6 +321,8 @@ export default function LobbyPage() {
             y_percent: r.y_percent,
             radius: r.radius,
             capacity: r.capacity,
+            current_teams: r.current_teams || 0,
+            teams: r.teams || [],
             assigned_team: r.team_id
               ? { id: r.team_id, name: r.team_name || `#${r.team_id}` }
               : null,
@@ -957,7 +971,18 @@ export default function LobbyPage() {
                       border: "2px solid #f44336",
                       boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)"
                     }}></div>
-                    <span style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 500 }}>Занята другой командой</span>
+                    <span style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 500 }}>Полностью занята</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <div style={{
+                      width: "16px",
+                      height: "16px",
+                      borderRadius: "50%",
+                      background: "rgba(255, 193, 7, 0.7)",
+                      border: "2px solid #ffc107",
+                      boxShadow: "0 2px 4px rgba(0, 0, 0, 0.3)"
+                    }}></div>
+                    <span style={{ color: "#b0bec5", fontSize: "14px", fontWeight: 500 }}>Частично занята</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{
@@ -1031,14 +1056,18 @@ export default function LobbyPage() {
                       : Math.max(Math.round((raw / 100) * (mapBoxSize.w || 0)), 4);
                   const key = z.assignment_id ?? z.id ?? `dz-${z.name}-${z.x_percent}-${z.y_percent}-${idx}`;
                   
-                  const isMyTeam = userTeam && z.assigned_team && z.assigned_team.id === userTeam.id;
-                  const canAssign = userTeam && !z.assigned_team;
+                  // проверяем, есть ли наша команда в этом дропзоне
+                  const myTeamInZone = userTeam && z.teams.find(t => t.team_id === userTeam.id);
+                  const isMyTeam = !!myTeamInZone;
+                  
+                  // можем занять, если есть место и наша команда еще не там
+                  const canAssign = userTeam && !isMyTeam && z.current_teams < z.capacity;
                   const canUnassign = userTeam && isMyTeam;
 
                   return (
                     <div
                       key={key}
-                      title={`${z.name}${z.assigned_team ? " • " + z.assigned_team.name : ""}`}
+                      title={`${z.name}${z.teams.length > 0 ? " • " + z.teams.map(t => t.team_name).join(", ") : ""}`}
                       style={{
                         position: "absolute",
                         left: `${z.x_percent}%`,
@@ -1049,10 +1078,12 @@ export default function LobbyPage() {
                         borderRadius: "50%",
                         background: isMyTeam 
                           ? "rgba(76, 175, 80, 0.7)" 
-                          : z.assigned_team 
+                          : z.current_teams >= z.capacity 
                             ? "rgba(244, 67, 54, 0.7)" 
-                            : "rgba(255, 255, 255, 0.15)",
-                        border: `2px solid ${isMyTeam ? "#4caf50" : z.assigned_team ? "#f44336" : "rgba(255, 255, 255, 0.4)"}`,
+                            : z.teams.length > 0 
+                              ? "rgba(255, 193, 7, 0.7)" 
+                              : "rgba(255, 255, 255, 0.15)",
+                        border: `2px solid ${isMyTeam ? "#4caf50" : z.current_teams >= z.capacity ? "#f44336" : z.teams.length > 0 ? "#ffc107" : "rgba(255, 255, 255, 0.4)"}`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -1068,7 +1099,7 @@ export default function LobbyPage() {
                     >
                       <div>
                         <div>{z.name}</div>
-                        {z.assigned_team && (
+                        {z.teams.length > 0 && (
                           <div style={{ 
                             fontSize: 11, 
                             marginTop: 3, 
@@ -1076,7 +1107,18 @@ export default function LobbyPage() {
                             fontWeight: 600,
                             textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)"
                           }}>
-                            {z.assigned_team.name}
+                            {z.teams.map(t => t.team_name).join(", ")}
+                          </div>
+                        )}
+                        {z.current_teams > 0 && (
+                          <div style={{ 
+                            fontSize: 10, 
+                            marginTop: 2, 
+                            opacity: 0.8,
+                            fontWeight: 500,
+                            textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)"
+                          }}>
+                            {z.current_teams}/{z.capacity}
                           </div>
                         )}
 

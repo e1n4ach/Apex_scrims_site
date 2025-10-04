@@ -192,8 +192,8 @@ class DropzoneAssignment(db.Model):
     __table_args__ = (
         # одна команда — только в одной зоне в пределах одной игры
         db.UniqueConstraint("game_id", "team_id", name="uq_assignment_game_team"),
-        # один шаблон зоны — один слот в пределах одной игры (capacity=1)
-        db.UniqueConstraint("game_id", "dropzone_id", name="uq_assignment_game_dropzone"),
+        # команда не может быть дважды в одной зоне
+        db.UniqueConstraint("game_id", "dropzone_id", "team_id", name="uq_assignment_game_dropzone_team"),
     )
 
     def __repr__(self):
