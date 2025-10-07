@@ -19,6 +19,8 @@ export function Layout() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="yandex-verification" content="6ca1f2dc7d876733" />
+        <meta name="google-site-verification" content="xZFZxdakwzmhLgUHREtNuJonFRyABavMpD9MVetMZ44" />
         <title>Аpexcup</title>
         <link rel="icon" type="image/png" href="/Logo white-rgb.png" />
         <link rel="apple-touch-icon" href="/Logo white-rgb.png" />
