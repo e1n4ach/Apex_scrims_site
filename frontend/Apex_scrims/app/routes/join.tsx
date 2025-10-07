@@ -316,8 +316,8 @@ export default function Join() {
             Join us
           </p>
           <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-            <a href="#" style={{ color: "#78909c" }}>discord</a>
-            <a href="#" style={{ color: "#78909c" }}>e-mail</a>
+            <a href="https://discord.gg/8tcBeUn36U" target="_blank" rel="noopener noreferrer" style={{ color: "#78909c" }}>discord</a>
+            <span style={{ color: "#78909c" }}>Сотрудничество: apexcup@rambler.ru</span>
           </div>
         </div>
         <p style={{ color: "#546e7a", fontSize: "14px" }}>

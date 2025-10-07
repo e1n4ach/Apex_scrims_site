@@ -16,7 +16,10 @@ export function Layout() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Apex Scrims Frontend</title>
+        <title>Аpexcup</title>
+        <link rel="icon" type="image/png" href="/Logo white-rgb.png" />
+        <link rel="apple-touch-icon" href="/Logo white-rgb.png" />
+        <link rel="shortcut icon" href="/Logo white-rgb.png" />
       </head>
       <body>
         <Outlet />

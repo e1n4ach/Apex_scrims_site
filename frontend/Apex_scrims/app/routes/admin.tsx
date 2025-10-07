@@ -41,10 +41,17 @@ type Map = {
   dropzones_count: number;
 };
 
+type Announcement = {
+  id: number;
+  title: string;
+  time: string;
+  prize: string;
+};
+
 export default function AdminPage() {
   const [hydrated, setHydrated] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [activeTab, setActiveTab] = useState<"users" | "lobbies" | "maps">("users");
+  const [activeTab, setActiveTab] = useState<"users" | "lobbies" | "maps" | "announcements">("users");
   
   // Состояния для создания лобби
   const [showCreateLobby, setShowCreateLobby] = useState(false);
@@ -65,10 +72,18 @@ export default function AdminPage() {
   const [addingResults, setAddingResults] = useState(false);
   const [existingResults, setExistingResults] = useState<{[teamId: number]: {place: number, kills: number, points: number}}>({});
   
+  // Состояния для анонсов
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+  const [newAnnouncementTitle, setNewAnnouncementTitle] = useState("");
+  const [newAnnouncementTime, setNewAnnouncementTime] = useState("");
+  const [newAnnouncementPrize, setNewAnnouncementPrize] = useState("");
+  const [creatingAnnouncement, setCreatingAnnouncement] = useState(false);
+  
   // Данные
   const [users, setUsers] = useState<User[]>([]);
   const [lobbies, setLobbies] = useState<Lobby[]>([]);
   const [maps, setMaps] = useState<Map[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   
   // Состояния загрузки
   const [loading, setLoading] = useState(false);
@@ -110,6 +125,9 @@ export default function AdminPage() {
       } else if (activeTab === "maps") {
         const mapsData = await api<Map[]>("/admin/maps", { auth: true });
         setMaps(mapsData);
+      } else if (activeTab === "announcements") {
+        const announcementsData = await api<Announcement[]>("/announcements");
+        setAnnouncements(announcementsData);
       }
     } catch (e: any) {
       setError(e.message || "Ошибка при загрузке данных");
@@ -283,6 +301,45 @@ export default function AdminPage() {
       loadData(); // Обновляем данные
     } catch (e: any) {
       setError(e.message || "Ошибка при удалении игры");
+    }
+  };
+
+  const createAnnouncement = async () => {
+    if (!newAnnouncementTitle.trim() || !newAnnouncementTime.trim() || !newAnnouncementPrize.trim()) return;
+    
+    setCreatingAnnouncement(true);
+    try {
+      await api("/announcements", {
+        auth: true,
+        method: "POST",
+        body: JSON.stringify({
+          title: newAnnouncementTitle.trim(),
+          time: newAnnouncementTime.trim(),
+          prize: newAnnouncementPrize.trim()
+        }),
+      });
+      
+      setNewAnnouncementTitle("");
+      setNewAnnouncementTime("");
+      setNewAnnouncementPrize("");
+      setShowCreateAnnouncement(false);
+      loadData(); // Обновляем данные
+    } catch (e: any) {
+      setError(e.message || "Ошибка при создании анонса");
+    } finally {
+      setCreatingAnnouncement(false);
+    }
+  };
+
+  const deleteAnnouncement = async (announcementId: number) => {
+    try {
+      await api(`/announcements/${announcementId}`, {
+        auth: true,
+        method: "DELETE",
+      });
+      loadData(); // Обновляем данные
+    } catch (e: any) {
+      setError(e.message || "Ошибка при удалении анонса");
     }
   };
 
@@ -478,6 +535,22 @@ export default function AdminPage() {
             }}
           >
             Карты
+          </button>
+          <button
+            onClick={() => setActiveTab("announcements")}
+            style={{
+              background: activeTab === "announcements" ? "rgba(0, 150, 200, 0.2)" : "transparent",
+              border: "1px solid rgba(0, 150, 200, 0.3)",
+              borderRadius: "8px",
+              padding: "12px 24px",
+              color: "#ffffff",
+              fontSize: "16px",
+              fontWeight: 500,
+              cursor: "pointer",
+              transition: "all 0.2s ease"
+            }}
+          >
+            Анонсы
           </button>
         </div>
 
@@ -759,6 +832,198 @@ export default function AdminPage() {
                     <div style={{ color: "#b0bec5", fontSize: "14px" }}>
                       Дропзон: {map.dropzones_count}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "announcements" && (
+            <div>
+              <h2 style={{ color: "#ffffff", marginBottom: "24px" }}>Анонсы турниров</h2>
+              
+              {/* Кнопка создания анонса */}
+              <div style={{ marginBottom: "24px" }}>
+                <button
+                  onClick={() => setShowCreateAnnouncement(true)}
+                  style={{
+                    background: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "12px 24px",
+                    color: "#ffffff",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  + Создать анонс
+                </button>
+              </div>
+
+              {/* Форма создания анонса */}
+              {showCreateAnnouncement && (
+                <div style={{
+                  background: "rgba(0, 26, 35, 0.5)",
+                  border: "1px solid rgba(220, 53, 69, 0.3)",
+                  borderRadius: "12px",
+                  padding: "24px",
+                  marginBottom: "24px"
+                }}>
+                  <h3 style={{ color: "#ffffff", marginBottom: "16px" }}>Создать новый анонс</h3>
+                  
+                  <div style={{ display: "grid", gap: "16px", marginBottom: "16px" }}>
+                    <div>
+                      <label style={{ color: "#b0bec5", fontSize: "14px", marginBottom: "4px", display: "block" }}>
+                        Название турнира
+                      </label>
+                      <input
+                        type="text"
+                        value={newAnnouncementTitle}
+                        onChange={(e) => setNewAnnouncementTitle(e.target.value)}
+                        placeholder="Введите название турнира"
+                        style={{
+                          width: "100%",
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label style={{ color: "#b0bec5", fontSize: "14px", marginBottom: "4px", display: "block" }}>
+                        Время проведения
+                      </label>
+                      <input
+                        type="text"
+                        value={newAnnouncementTime}
+                        onChange={(e) => setNewAnnouncementTime(e.target.value)}
+                        placeholder="Например: 15 декабря 2024, 20:00 МСК"
+                        style={{
+                          width: "100%",
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label style={{ color: "#b0bec5", fontSize: "14px", marginBottom: "4px", display: "block" }}>
+                        Призовой фонд
+                      </label>
+                      <input
+                        type="text"
+                        value={newAnnouncementPrize}
+                        onChange={(e) => setNewAnnouncementPrize(e.target.value)}
+                        placeholder="Например: 50,000 рублей"
+                        style={{
+                          width: "100%",
+                          padding: "12px 16px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255, 255, 255, 0.2)",
+                          background: "rgba(255, 255, 255, 0.1)",
+                          color: "#ffffff",
+                          fontSize: "16px"
+                        }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: "flex", gap: "12px" }}>
+                    <button
+                      onClick={createAnnouncement}
+                      disabled={creatingAnnouncement}
+                      style={{
+                        background: creatingAnnouncement 
+                          ? "rgba(220, 53, 69, 0.5)" 
+                          : "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
+                        border: "none",
+                        borderRadius: "8px",
+                        padding: "12px 24px",
+                        color: "#ffffff",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        cursor: creatingAnnouncement ? "not-allowed" : "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      {creatingAnnouncement ? "Создание..." : "Создать"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowCreateAnnouncement(false);
+                        setNewAnnouncementTitle("");
+                        setNewAnnouncementTime("");
+                        setNewAnnouncementPrize("");
+                      }}
+                      style={{
+                        background: "transparent",
+                        border: "1px solid rgba(255, 255, 255, 0.3)",
+                        borderRadius: "8px",
+                        padding: "12px 24px",
+                        color: "#ffffff",
+                        fontSize: "16px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Список анонсов */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))",
+                gap: "16px"
+              }}>
+                {announcements.map((announcement) => (
+                  <div
+                    key={announcement.id}
+                    style={{
+                      background: "linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(200, 35, 51, 0.05) 100%)",
+                      border: "1px solid rgba(220, 53, 69, 0.3)",
+                      borderRadius: "12px",
+                      padding: "20px"
+                    }}
+                  >
+                    <h3 style={{ color: "#ffffff", marginBottom: "12px", fontSize: "18px" }}>
+                      {announcement.title}
+                    </h3>
+                    <p style={{ color: "#b0bec5", marginBottom: "8px", fontSize: "14px" }}>
+                      🕒 {announcement.time}
+                    </p>
+                    <p style={{ color: "#ffc107", marginBottom: "16px", fontSize: "14px", fontWeight: "600" }}>
+                      💰 {announcement.prize}
+                    </p>
+                    <button
+                      onClick={() => deleteAnnouncement(announcement.id)}
+                      style={{
+                        background: "rgba(220, 53, 69, 0.2)",
+                        border: "1px solid rgba(220, 53, 69, 0.5)",
+                        borderRadius: "6px",
+                        padding: "8px 16px",
+                        color: "#dc3545",
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                    >
+                      Удалить
+                    </button>
                   </div>
                 ))}
               </div>
@@ -1100,6 +1365,7 @@ export default function AdminPage() {
         </div>
       )}
 
+
       {/* Футер */}
       <footer 
         style={{
@@ -1113,8 +1379,8 @@ export default function AdminPage() {
             Join us
           </p>
           <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-            <a href="#" style={{ color: "#78909c" }}>discord</a>
-            <a href="#" style={{ color: "#78909c" }}>e-mail</a>
+            <a href="https://discord.gg/8tcBeUn36U" target="_blank" rel="noopener noreferrer" style={{ color: "#78909c" }}>discord</a>
+            <span style={{ color: "#78909c" }}>Сотрудничество: apexcup@rambler.ru</span>
           </div>
         </div>
         <p style={{ color: "#546e7a", fontSize: "14px" }}>

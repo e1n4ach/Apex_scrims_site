@@ -13,11 +13,11 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-type Lobby = { id: number; name: string; code: string };
+type Announcement = { id: number; title: string; time: string; prize: string };
 
 export default function Home() {
   const [hello, setHello] = useState<string>("…");
-  const [lobbies, setLobbies] = useState<Lobby[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -32,9 +32,9 @@ export default function Home() {
 
     setLoading(true);
     setErr(null);
-    api<Lobby[]>("/lobbies/")
-      .then(setLobbies)
-      .catch((e: any) => setErr(e.message || "Не удалось загрузить лобби"))
+    api<Announcement[]>("/announcements")
+      .then(setAnnouncements)
+      .catch((e: any) => setErr(e.message || "Не удалось загрузить анонсы"))
       .finally(() => setLoading(false));
 
     // Проверяем, является ли пользователь админом
@@ -259,7 +259,7 @@ export default function Home() {
             textShadow: "0 2px 10px rgba(0, 150, 200, 0.3)"
           }}
         >
-          Последние лобби:
+          Анонсы турниров:
         </h2>
         
         {loading ? (
@@ -282,10 +282,10 @@ export default function Home() {
           <div style={{ textAlign: "center", padding: "60px 0" }} className="animate-fade-in-up">
             <p style={{ color: "#f44336", fontSize: "18px" }}>{err}</p>
           </div>
-        ) : !lobbies.length ? (
+        ) : !announcements.length ? (
           <div style={{ textAlign: "center", padding: "60px 0" }} className="animate-fade-in-up">
-            <p style={{ color: "#78909c", fontSize: "18px" }}>Пока нет лобби.</p>
-            <p style={{ color: "#546e7a", marginTop: "8px" }}>Скоро здесь появятся новые лобби!</p>
+            <p style={{ color: "#78909c", fontSize: "18px" }}>Пока нет анонсов турниров.</p>
+            <p style={{ color: "#546e7a", marginTop: "8px" }}>Скоро здесь появятся новые турниры!</p>
           </div>
         ) : (
           <div 
@@ -296,20 +296,20 @@ export default function Home() {
               marginTop: "48px"
             }}
           >
-            {/* Карточки лобби */}
-            {lobbies.slice(0, 4).map((lobby, index) => (
+            {/* Карточки анонсов турниров */}
+            {announcements.map((announcement, index) => (
               <div 
-                key={lobby.id}
-                className="lobby-card animate-fade-in-up"
+                key={announcement.id}
+                className="announcement-card animate-fade-in-up"
                 style={{
-                  background: "linear-gradient(135deg, rgba(0, 150, 200, 0.1) 0%, rgba(0, 123, 167, 0.05) 100%)",
-                  border: "2px solid #0096c8",
+                  background: "linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(200, 35, 51, 0.05) 100%)",
+                  border: "2px solid #dc3545",
                   borderRadius: "12px",
                   padding: "32px",
                   textAlign: "center",
                   transition: "all 0.3s ease",
                   animationDelay: `${index * 0.2}s`,
-                  boxShadow: "0 8px 25px rgba(0, 150, 200, 0.2)"
+                  boxShadow: "0 8px 25px rgba(220, 53, 69, 0.2)"
                 }}
               >
                 <h3 
@@ -320,35 +320,40 @@ export default function Home() {
                     marginBottom: "16px"
                   }}
                 >
-                  {lobby.name}
+                  {announcement.title}
                 </h3>
                 <p style={{ color: "#b0bec5", marginBottom: "8px" }}>
-                  Код: {lobby.code}
+                  🕒 {announcement.time}
                 </p>
-                <Link 
-                  to={`/lobby/${lobby.id}`}
+                <p style={{ color: "#ffc107", marginBottom: "16px", fontWeight: "600" }}>
+                  💰 {announcement.prize}
+                </p>
+                <a 
+                  href="https://discord.gg/8tcBeUn36U"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   style={{
                     display: "inline-block",
                     padding: "10px 20px",
-                    background: "linear-gradient(135deg, #0096c8 0%, #007ba7 100%)",
+                    background: "linear-gradient(135deg, #dc3545 0%, #c82333 100%)",
                     color: "white",
                     textDecoration: "none",
                     borderRadius: "6px",
                     fontWeight: "600",
                     transition: "all 0.3s ease",
-                    boxShadow: "0 4px 15px rgba(0, 150, 200, 0.3)"
+                    boxShadow: "0 4px 15px rgba(220, 53, 69, 0.3)"
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 8px 25px rgba(0, 150, 200, 0.4)";
+                    e.currentTarget.style.boxShadow = "0 8px 25px rgba(220, 53, 69, 0.4)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 4px 15px rgba(0, 150, 200, 0.3)";
+                    e.currentTarget.style.boxShadow = "0 4px 15px rgba(220, 53, 69, 0.3)";
                   }}
                 >
-                  Посмотреть
-                </Link>
+                  Участвовать
+                </a>
               </div>
             ))}
           </div>
@@ -369,8 +374,8 @@ export default function Home() {
             Join us
           </p>
           <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-            <a href="#" style={{ color: "#78909c" }}>discord</a>
-            <a href="#" style={{ color: "#78909c" }}>e-mail</a>
+            <a href="https://discord.gg/8tcBeUn36U" target="_blank" rel="noopener noreferrer" style={{ color: "#78909c" }}>discord</a>
+            <span style={{ color: "#78909c" }}>Сотрудничество: apexcup@rambler.ru</span>
           </div>
         </div>
         <p style={{ color: "#546e7a", fontSize: "14px" }}>

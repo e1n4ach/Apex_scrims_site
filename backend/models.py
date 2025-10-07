@@ -203,9 +203,10 @@ class Announcement(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(120), nullable=False)
-    description = db.Column(db.Text)
-    date = db.Column(db.String(120))
-    prize = db.Column(db.String(120))
+    description = db.Column(db.Text)  # Временно используем как time
+    date = db.Column(db.String(120))  # Временно используем как prize
+    time = db.Column(db.String(120))  # Новое поле
+    prize = db.Column(db.String(120))  # Новое поле
 
     def __repr__(self):
         return f"<Announcement {self.title}>"

@@ -76,6 +76,9 @@ app.register_blueprint(maps_bp, url_prefix="/api")
 from routes.admin import admin_bp
 app.register_blueprint(admin_bp, url_prefix="/api")
 
+from routes.announcement import announcement_bp
+app.register_blueprint(announcement_bp, url_prefix="/api")
+
 # Импорт моделей для миграций
 from models import User, Lobby, Game, Team, Player, Result, DropzoneTemplate, DropzoneAssignment, Announcement
 
