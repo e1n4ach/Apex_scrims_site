@@ -418,17 +418,27 @@ export default function Register() {
         }}
       >
         <div style={{ marginBottom: "16px" }}>
-          <p style={{ color: "#0096c8", fontWeight: "600", marginBottom: "8px" }}>
-            Join us
+          <p style={{ color: "#0096c8", fontWeight: "600", marginBottom: "8px", fontSize: "18px" }}>
+            Присоединяйся к нам
           </p>
-          <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px", alignItems: "center" }}>
             <a href="https://discord.gg/8tcBeUn36U" target="_blank" rel="noopener noreferrer" style={{ color: "#78909c" }}>discord</a>
+            <a href="https://t.me/apexcup" target="_blank" rel="noopener noreferrer" style={{ color: "#78909c" }}>telegram</a>
             <span style={{ color: "#78909c" }}>Сотрудничество: apexcup@rambler.ru</span>
           </div>
         </div>
-        <p style={{ color: "#546e7a", fontSize: "14px" }}>
-          prod by xxx
-        </p>
+        <a 
+          href="https://github.com/e1n4ach" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          style={{ 
+            color: "#546e7a", 
+            fontSize: "14px",
+            textDecoration: "none"
+          }}
+        >
+          prod by e1n4ach
+        </a>
       </footer>
     </div>
   );

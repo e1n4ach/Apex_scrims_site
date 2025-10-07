@@ -5,10 +5,13 @@ import {
   ScrollRestoration,
   Link,
   useNavigate,
+  Links,
+  Meta,
 } from "react-router";
 import { useEffect, useState } from "react";
 import { api, getToken, clearToken } from "./lib/api";
 
+import "./app.css";
 // HTML-обвязка (оставляем как было)
 export function Layout() {
   return (
@@ -20,6 +23,8 @@ export function Layout() {
         <link rel="icon" type="image/png" href="/Logo white-rgb.png" />
         <link rel="apple-touch-icon" href="/Logo white-rgb.png" />
         <link rel="shortcut icon" href="/Logo white-rgb.png" />
+        <Meta />   
+        <Links />
       </head>
       <body>
         <Outlet />
