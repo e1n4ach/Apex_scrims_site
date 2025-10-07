@@ -5,13 +5,24 @@ import { api, getToken } from "../lib/api";
 import { Link } from "react-router";
 import { ApexLogo } from "../components/ApexLogo";
 import "../app.css";
+import type { MetaFunction, LinksFunction } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Apex Scrims — Главная" },
-    { name: "description", content: "Лучший сайт для проведения скримов Apex Legends" },
+    { title: "Apexcup — скримы Apex Legends" },
+    { name: "description", content: "Площадка для проведения скримов Apex Legends: лобби, дропзоны, результаты." },
+    { property: "og:title", content: "Apexcup — скримы Apex Legends" },
+    { property: "og:description", content: "Лобби, дропзоны, результаты и регистрация команд." },
+    { property: "og:url", content: "https://apexcup.ru/" },
+    { property: "og:image", content: "https://apexcup.ru/Logo%20white-rgb.png" },
+    { property: "og:locale", content: "ru_RU" },
+    { name: "twitter:card", content: "summary_large_image" },
   ];
 }
+
+export const links: LinksFunction = () => ([
+  { rel: "canonical", href: "https://apexcup.ru/" },
+]);
 
 type Announcement = { id: number; title: string; time: string; prize: string };
 
