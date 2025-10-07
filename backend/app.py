@@ -6,16 +6,16 @@ from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
 from flask import jsonify
 from config import UPLOAD_DIR
-
+import os
 # Инициализация Flask-приложения
 app = Flask(__name__, static_folder="static")
 
 app.json.ensure_ascii = False
 
 # Конфигурация базы данных и JWT
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = 'super-secret-key'  # замени на свой в проде
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'dev-secret-change-me')
 
 # Настройки Swagger
 app.config['SWAGGER'] = {

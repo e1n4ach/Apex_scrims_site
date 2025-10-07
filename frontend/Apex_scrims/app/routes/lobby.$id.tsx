@@ -9,7 +9,6 @@ const ZONE_DIAMETER_PX = 130; // требуемый диаметр круга в
 type LobbyDetails = {
   id: number;
   name: string;
-  code: string;
 };
 
 type SummaryRow = {
@@ -59,9 +58,8 @@ type Dropzone = {
 export default function LobbyPage() {
   const { id } = useParams();
 
-  // ===== Детали лобби (чтобы показать code) =====
+  // ===== Детали лобби =====
   const [lobby, setLobby] = useState<LobbyDetails | null>(null);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -70,14 +68,6 @@ export default function LobbyPage() {
       .catch(() => setLobby(null));
   }, [id]);
 
-  async function copyCode() {
-    if (!lobby?.code) return;
-    try {
-      await navigator.clipboard.writeText(lobby.code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {}
-  }
 
   // ===== Итог =====
   const [summary, setSummary] = useState<SummaryRow[]>([]);
@@ -111,6 +101,39 @@ export default function LobbyPage() {
       .then(setGameResults)
       .catch(() => {});
   }, [selectedGameId]);
+
+  // ===== Polling для обновления результатов =====
+  useEffect(() => {
+    if (!id) return;
+
+    const updateResults = async () => {
+      setIsUpdatingResults(true);
+      try {
+        // Обновляем итоговую таблицу
+        const summaryData = await api<SummaryRow[]>(`/lobbies/${id}/results/summary`);
+        setSummary(summaryData);
+        
+        // Обновляем результаты выбранной игры, если она выбрана
+        if (selectedGameId) {
+          const gameResultsData = await api<GameResult[]>(`/games/${selectedGameId}/results`);
+          setGameResults(gameResultsData);
+        }
+      } catch (error) {
+        console.error("Ошибка при обновлении результатов:", error);
+      } finally {
+        setIsUpdatingResults(false);
+      }
+    };
+
+    // Первоначальная загрузка
+    updateResults();
+
+    // Устанавливаем интервал для polling каждые 30 секунд
+    const interval = setInterval(updateResults, 30000);
+
+    // Очистка интервала при размонтировании или изменении зависимостей
+    return () => clearInterval(interval);
+  }, [id, selectedGameId]); // Перезапускаем polling при смене лобби или выбранной игры
 
   // ===== Дропзоны выбранной игры =====
   const [dropzones, setDropzones] = useState<Dropzone[]>([]);
@@ -146,6 +169,48 @@ export default function LobbyPage() {
       .catch(() => setDropzones([]));
   }, [selectedGameId]);
 
+  // ===== Polling для обновления дропзон =====
+  useEffect(() => {
+    if (!selectedGameId) return;
+
+    const updateDropzones = async () => {
+      try {
+        const rows = await api<any[]>(`/dropzones/for-game/${selectedGameId}`);
+        const dz = rows.map((r) => ({
+          id: r.id,
+          assignment_id: r.assignment_id,
+          name: r.name,
+          x_percent: r.x_percent,
+          y_percent: r.y_percent,
+          radius: r.radius,
+          capacity: r.capacity,
+          current_teams: r.current_teams || 0,
+          teams: r.teams || [],
+          assigned_team: r.team_id
+            ? { id: r.team_id, name: r.team_name || `#${r.team_id}` }
+            : null,
+          team_id: r.team_id,
+          team_name: r.team_name,
+        })) as Dropzone[];
+        
+        // Убираем дублирующиеся дропзоны по ID
+        const uniqueDz = dz.filter((zone, index, self) => 
+          index === self.findIndex(z => z.id === zone.id)
+        );
+        
+        setDropzones(uniqueDz);
+      } catch (error) {
+        console.error("Ошибка при обновлении дропзон:", error);
+      }
+    };
+
+    // Устанавливаем интервал для polling каждые 3 секунды
+    const interval = setInterval(updateDropzones, 3000);
+
+    // Очистка интервала при размонтировании или изменении зависимостей
+    return () => clearInterval(interval);
+  }, [selectedGameId]); // Перезапускаем polling при смене выбранной игры
+
   // ===== Регистрация команды (SSR-safe) =====
   const [teamName, setTeamName] = useState("");
   const [p1, setP1] = useState("");
@@ -163,6 +228,9 @@ export default function LobbyPage() {
   // кто админ + режим разметки
   const [isAdmin, setIsAdmin] = useState(false);
   const [markMode, setMarkMode] = useState(false);
+  
+  // состояние для отслеживания обновления результатов
+  const [isUpdatingResults, setIsUpdatingResults] = useState(false);
   
   // информация о команде пользователя
   const [userTeam, setUserTeam] = useState<{ id: number; name: string; players: string[] } | null>(null);
@@ -201,24 +269,19 @@ export default function LobbyPage() {
         if (id) {
           api<any[]>(`/lobbies/${id}/teams`)
             .then((teams) => {
-              console.log("Все команды в лобби:", teams);
-              console.log("Ищем команду для пользователя:", u.username);
               
               // Ищем команду, где пользователь является игроком
               const foundTeam = teams.find(team => {
-                console.log("Проверяем команду:", team.name, "игроки:", team.players);
                 return team.players && team.players.includes(u.username);
               });
               
               if (foundTeam) {
-                console.log("Найдена команда пользователя:", foundTeam);
                 setUserTeam({ 
                   id: foundTeam.id, 
                   name: foundTeam.name, 
                   players: foundTeam.players || []
                 });
               } else {
-                console.log("Команда пользователя не найдена");
                 setUserTeam(null);
               }
             })
@@ -253,7 +316,12 @@ export default function LobbyPage() {
       });
       setTMsg("Команда зарегистрирована");
       setTeamName(""); setP1(""); setP2(""); setP3("");
+      
+      // Обновляем итоговую таблицу
       api<SummaryRow[]>(`/lobbies/${id}/results/summary`).then(setSummary).catch(() => {});
+      
+      // Polling для обновления информации о команде пользователя
+      pollForUserTeam();
     } catch (e: any) {
       setTErr(e.message || "Ошибка регистрации команды");
     } finally {
@@ -261,10 +329,59 @@ export default function LobbyPage() {
     }
   }
 
+  // Функция для polling информации о команде пользователя
+  const pollForUserTeam = async () => {
+    if (!id) return;
+    
+    const maxAttempts = 10; // Максимум 10 попыток
+    const pollInterval = 1000; // Интервал 1 секунда
+    let attempts = 0;
+    
+    const poll = async () => {
+      try {
+        // Получаем текущего пользователя
+        const currentUser = await api<{ is_admin: boolean; username: string }>("/auth/account", { auth: true });
+        
+        // Получаем все команды в лобби
+        const teams = await api<any[]>(`/lobbies/${id}/teams`);
+        
+        // Ищем команду, где пользователь является игроком
+        const foundTeam = teams.find(team => {
+          return team.players && team.players.includes(currentUser.username);
+        });
+        
+        if (foundTeam) {
+          // Команда найдена, обновляем состояние
+          setUserTeam({ 
+            id: foundTeam.id, 
+            name: foundTeam.name, 
+            players: foundTeam.players || []
+          });
+          return; // Успешно найдено, прекращаем polling
+        }
+        
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Продолжаем polling
+          setTimeout(poll, pollInterval);
+        } else {
+          console.warn("Polling для команды пользователя завершен по таймауту");
+        }
+      } catch (error) {
+        console.error("Ошибка при polling команды пользователя:", error);
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, pollInterval);
+        }
+      }
+    };
+    
+    // Запускаем polling
+    poll();
+  };
+
   // ====== назначение/снятие зоны ======
   async function assign(templateId: number) {
-    console.log("Попытка занять зону:", templateId);
-    console.log("Команда пользователя:", userTeam);
     
     if (!userTeam) {
       alert("Вы не состоите в команде в этом лобби");
@@ -273,7 +390,6 @@ export default function LobbyPage() {
     
     try {
       const requestData = { team_id: userTeam.id };
-      console.log("Отправляем данные:", requestData);
       
       await api(`/games/${selectedGameId}/dropzones/assign-by-template/${templateId}`, {
         auth: true,
@@ -315,9 +431,6 @@ export default function LobbyPage() {
   }
 
   async function unassign(assignmentId: number) {
-    console.log("Попытка освободить зону:", assignmentId);
-    console.log("Команда пользователя:", userTeam);
-    console.log("Игра:", selectedGameId);
     
     if (!userTeam) {
       alert("Вы не состоите в команде в этом лобби");
@@ -325,17 +438,14 @@ export default function LobbyPage() {
     }
     
     try {
-      console.log("Отправляем DELETE запрос на:", `/games/${selectedGameId}/dropzones/${assignmentId}/remove`);
       await api(`/games/${selectedGameId}/dropzones/${assignmentId}/remove`, {
         auth: true,
         method: "DELETE",
       });
       
       // обновим зоны
-      console.log("Обновляем дропзоны после освобождения...");
       api<any[]>(`/dropzones/for-game/${selectedGameId}`)
         .then((rows) => {
-          console.log("Получены обновленные дропзоны:", rows);
           const dz = rows.map((r) => ({
             id: r.id,
             assignment_id: r.assignment_id,
@@ -358,7 +468,6 @@ export default function LobbyPage() {
             index === self.findIndex(z => z.id === zone.id)
           );
           
-          console.log("Обработанные дропзоны:", uniqueDz);
           setDropzones(uniqueDz);
         })
         .catch((error) => {
@@ -617,34 +726,6 @@ export default function LobbyPage() {
               )}
             </div>
 
-            {/* Код лобби справа */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <span style={{ color: "#b0bec5", fontSize: "14px" }}>Код лобби:</span>
-              <code style={{ 
-                color: "#ffffff", 
-                fontSize: "16px", 
-                fontWeight: 600,
-                background: "rgba(255, 255, 255, 0.1)",
-                padding: "4px 8px",
-                borderRadius: "4px"
-              }}>
-                {lobby?.code || "ABC123XV"}
-              </code>
-              <button 
-                onClick={copyCode}
-                style={{
-                  background: "rgba(255, 255, 255, 0.1)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "#ffffff",
-                  padding: "4px 8px",
-                  borderRadius: "4px",
-                  fontSize: "12px",
-                  cursor: "pointer"
-                }}
-              >
-                {copied ? "✓" : "Copy"}
-              </button>
-            </div>
           </div>
 
           {/* Контент таблицы */}
@@ -720,6 +801,32 @@ export default function LobbyPage() {
                   }}>
                     {showSummary ? (
                       <>
+                        {/* Индикатор обновления */}
+                        {isUpdatingResults && (
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "8px 16px",
+                            background: "rgba(0, 150, 200, 0.1)",
+                            borderBottom: "1px solid rgba(0, 150, 200, 0.2)",
+                            color: "#0096c8",
+                            fontSize: "12px",
+                            fontWeight: "500"
+                          }}>
+                            <div style={{
+                              width: "12px",
+                              height: "12px",
+                              border: "2px solid rgba(0, 150, 200, 0.3)",
+                              borderTop: "2px solid #0096c8",
+                              borderRadius: "50%",
+                              animation: "spin 1s linear infinite",
+                              marginRight: "8px"
+                            }}></div>
+                            Обновление результатов...
+                          </div>
+                        )}
+                        
                         {/* Заголовок итоговой таблицы */}
                         <div style={{
                           display: "grid",
@@ -779,6 +886,32 @@ export default function LobbyPage() {
                       </>
                     ) : (
                       <>
+                        {/* Индикатор обновления для таблицы игры */}
+                        {isUpdatingResults && (
+                          <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            padding: "8px 16px",
+                            background: "rgba(0, 150, 200, 0.1)",
+                            borderBottom: "1px solid rgba(0, 150, 200, 0.2)",
+                            color: "#0096c8",
+                            fontSize: "12px",
+                            fontWeight: "500"
+                          }}>
+                            <div style={{
+                              width: "12px",
+                              height: "12px",
+                              border: "2px solid rgba(0, 150, 200, 0.3)",
+                              borderTop: "2px solid #0096c8",
+                              borderRadius: "50%",
+                              animation: "spin 1s linear infinite",
+                              marginRight: "8px"
+                            }}></div>
+                            Обновление результатов...
+                          </div>
+                        )}
+                        
                         {/* Заголовок таблицы игры */}
                         <div style={{
                           display: "grid",

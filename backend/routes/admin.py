@@ -388,10 +388,13 @@ def delete_game(game_id):
     if not game:
         return jsonify({"error": "Game not found"}), 404
 
+    # ✅ сохранить поле до удаления
+    game_number = game.number
+
     db.session.delete(game)
     db.session.commit()
 
-    return jsonify({"message": f"Game {game.number} deleted"}), 200
+    return jsonify({"message": f"Game {game_number} deleted"}), 200
 
 @admin_bp.route('/admin/users/<int:user_id>/toggle-admin', methods=['POST'])
 @jwt_required()
@@ -467,10 +470,13 @@ def delete_lobby(lobby_id):
     if not lobby:
         return jsonify({"error": "Lobby not found"}), 404
 
+    # ✅ сохранить поле до удаления
+    lobby_name = lobby.name
+
     db.session.delete(lobby)
     db.session.commit()
 
-    return jsonify({"message": f"Lobby {lobby.name} deleted"}), 200
+    return jsonify({"message": f"Lobby {lobby_name} deleted"}), 200
 
 @admin_bp.route('/admin/maps/<int:map_id>/delete', methods=['DELETE'])
 @jwt_required()
@@ -503,10 +509,13 @@ def delete_map(map_id):
     if not map_obj:
         return jsonify({"error": "Map not found"}), 404
 
+    # ✅ сохранить поле до удаления
+    map_name = map_obj.name
+
     db.session.delete(map_obj)
     db.session.commit()
 
-    return jsonify({"message": f"Map {map_obj.name} deleted"}), 200
+    return jsonify({"message": f"Map {map_name} deleted"}), 200
 
 @admin_bp.route('/admin/games/<int:game_id>/results', methods=['POST'])
 @jwt_required()

@@ -35,7 +35,7 @@ def create_dropzones_for_game(game_id):
       404:
         description: Game not found
     """
-    user = User.query.get(get_jwt_identity())
+    user = User.query.get(int(get_jwt_identity()))
     if not user or not user.is_admin:
         return jsonify({"error": "Admin access required"}), 403
 
@@ -143,7 +143,7 @@ def assign_team(game_id, assignment_id):
       409:
         description: Team already assigned elsewhere
     """
-    user = User.query.get(get_jwt_identity())
+    user = User.query.get(int(get_jwt_identity()))
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -225,7 +225,7 @@ def assign_team_by_template(game_id, template_id):
       409:
         description: Team already assigned elsewhere
     """
-    user = User.query.get(get_jwt_identity())
+    user = User.query.get(int(get_jwt_identity()))
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -320,7 +320,7 @@ def remove_team(game_id, assignment_id):
       404:
         description: Not found
     """
-    user = User.query.get(get_jwt_identity())
+    user = User.query.get(int(get_jwt_identity()))
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
@@ -328,9 +328,6 @@ def remove_team(game_id, assignment_id):
     if not assignment or assignment.game_id != game_id:
         return jsonify({"error": "Dropzone not found"}), 404
     
-    print(f"DEBUG: User {user.username} trying to remove assignment {assignment_id}")
-    print(f"DEBUG: Assignment team_id: {assignment.team_id}")
-    print(f"DEBUG: Assignment game_id: {assignment.game_id}")
 
     # admin or the assigned team itself
     if not user.is_admin:
@@ -343,9 +340,6 @@ def remove_team(game_id, assignment_id):
             username=user.username, 
             team_id=assignment.team_id
         ).first()
-        print(f"DEBUG: Player found: {player is not None}")
-        if player:
-            print(f"DEBUG: Player team_id: {player.team_id}")
         if not player:
             return jsonify({"error": "You cannot remove this team"}), 403
 
@@ -385,7 +379,7 @@ def remove_team_by_template(game_id, template_id):
       404:
         description: Not found
     """
-    user = User.query.get(get_jwt_identity())
+    user = User.query.get(int(get_jwt_identity()))
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 

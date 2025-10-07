@@ -104,8 +104,7 @@ def get_all_lobbies():
     for lobby in lobbies:
         result.append({
             "id": lobby.id,
-            "name": lobby.name,
-            "code": lobby.code
+            "name": lobby.name
         })
     return jsonify(result), 200
 
@@ -150,7 +149,7 @@ def delete_lobby(lobby_id):
     return jsonify({"message": "Lobby deleted successfully"}), 200
 
 
-# ✅ Get lobby by CODE (для Join). Теперь задокументировано в Swagger.
+# ✅ Get lobby by CODE (для Join) - возвращает только id и name
 @lobby_bp.route('/by-code/<string:code>', methods=['GET'])
 def get_lobby_by_code(code):
     """
@@ -172,7 +171,6 @@ def get_lobby_by_code(code):
           properties:
             id: {type: integer}
             name: {type: string}
-            code: {type: string}
       404:
         description: Lobby not found
     """
@@ -180,14 +178,14 @@ def get_lobby_by_code(code):
     lobby = Lobby.query.filter_by(code=code).first()
     if not lobby:
         return jsonify({"error": "Lobby not found"}), 404
-    return jsonify({"id": lobby.id, "name": lobby.name, "code": lobby.code}), 200
+    return jsonify({"id": lobby.id, "name": lobby.name}), 200
 
 
-# ✅ Удобная ручка: детали лобби по ID (включая code) — чтобы показывать код на странице лобби.
+# ✅ Удобная ручка: детали лобби по ID (только id и name)
 @lobby_bp.route('/<int:lobby_id>/details', methods=['GET'])
 def get_lobby_details(lobby_id):
     """
-    Get lobby details by id (id, name, code)
+    Get lobby details by id (id, name)
     ---
     tags:
       - Lobby
@@ -204,11 +202,10 @@ def get_lobby_details(lobby_id):
           properties:
             id: {type: integer}
             name: {type: string}
-            code: {type: string}
       404:
         description: Lobby not found
     """
     lobby = Lobby.query.get(lobby_id)
     if not lobby:
         return jsonify({"error": "Lobby not found"}), 404
-    return jsonify({"id": lobby.id, "name": lobby.name, "code": lobby.code}), 200
+    return jsonify({"id": lobby.id, "name": lobby.name}), 200

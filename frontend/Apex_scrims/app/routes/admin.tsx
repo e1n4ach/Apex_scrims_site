@@ -652,8 +652,36 @@ export default function AdminPage() {
                     <div style={{ color: "#ffffff", fontWeight: 600, marginBottom: "8px" }}>
                       {lobby.name}
                     </div>
-                    <div style={{ color: "#b0bec5", fontSize: "14px", marginBottom: "4px" }}>
-                      Код: {lobby.code}
+                    <div style={{ 
+                      color: "#0096c8", 
+                      fontSize: "14px", 
+                      fontWeight: "600", 
+                      marginBottom: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px"
+                    }}>
+                      <span>Код: {lobby.code}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(lobby.code);
+                          // Можно добавить уведомление об успешном копировании
+                        }}
+                        style={{
+                          background: "rgba(0, 150, 200, 0.2)",
+                          border: "1px solid rgba(0, 150, 200, 0.5)",
+                          borderRadius: "4px",
+                          color: "#0096c8",
+                          fontSize: "10px",
+                          fontWeight: "500",
+                          cursor: "pointer",
+                          padding: "2px 6px",
+                          transition: "all 0.2s ease"
+                        }}
+                        title="Копировать код лобби"
+                      >
+                        📋
+                      </button>
                     </div>
                     <div style={{ color: "#b0bec5", fontSize: "14px", marginBottom: "4px" }}>
                       Команд: {lobby.teams_count}
