@@ -22,9 +22,12 @@ export function Layout() {
         <meta name="yandex-verification" content="6ca1f2dc7d876733" />
         <meta name="google-site-verification" content="xZFZxdakwzmhLgUHREtNuJonFRyABavMpD9MVetMZ44" />
         <title>Аpexcup</title>
-        <link rel="icon" type="image/png" href="/Logo white-rgb.png" />
-        <link rel="apple-touch-icon" href="/Logo white-rgb.png" />
-        <link rel="shortcut icon" href="/Logo white-rgb.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <meta name="theme-color" content="#001a23" />
         <Meta />   
         <Links />
       </head>
